@@ -1,32 +1,31 @@
 #include "window_size.h"
-
+#include <ncurses.h>
+#include <time.h>
+#include <string.h>
 
 int rand_char();
 void fill_print_buffer(char*, struct winsize);
 
 
 int main(){
+    srand(time(0));
     struct winsize ws = get_window_size();
     char* term_window = malloc((ws.ws_col * ws.ws_row) * sizeof(term_window));
 
     fill_print_buffer(term_window, ws);
-    term_window[ws.ws_col * ws.ws_row] = '\0';
+
+    initscr(); // initialize screen
+    mvprintw(0, 0, term_window); // mv cursor to start and prin screen
+    fill_print_buffer(term_window, ws); // randomly populate the buffer
+    getch(); // wait for key press
+    refresh(); //refresh contents
     
-    fill_print_buffer(term_window, ws);
-    term_window[ws.ws_col * ws.ws_row] = '\0';
-    printf("%s\n", term_window);
-    
-    fill_print_buffer(term_window, ws);
-    term_window[ws.ws_col * ws.ws_row] = '\0';
-    printf("%s\n", term_window);
-    
-    fill_print_buffer(term_window, ws);
-    term_window[ws.ws_col * ws.ws_row] = '\0';
-    printf("%s\n", term_window);
-    
-    fill_print_buffer(term_window, ws); 
-    term_window[ws.ws_col * ws.ws_row] = '\0';
-    printf("%s\n", term_window);
+    mvprintw(0, 0, term_window); // move back to start and print screen
+   // clear();
+    //printw(term_window);
+    refresh();
+    getch();
+    endwin();
    
     free(term_window);
 }

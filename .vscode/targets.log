@@ -1,6 +1,4 @@
 make all --print-data-base --no-builtin-variables --no-builtin-rules --question
-make: *** No rule to make target 'all'.  Stop.
-
 # GNU Make 4.3
 # Built for x86_64-pc-linux-gnu
 # Copyright (C) 1988-2020 Free Software Foundation, Inc.
@@ -8,7 +6,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Tue Jun  7 20:53:17 2022
+# Make data base, printed on Fri Jun 10 19:37:12 2022
 
 # Variables
 
@@ -19,7 +17,7 @@ LC_ALL = C
 # environment
 NO_AT_BRIDGE = 1
 # environment
-VSCODE_IPC_HOOK_EXTHOST = /run/user/1000/vscode-ipc-ae2bb3a1-dd2e-4d4e-935d-16fe72648624.sock
+VSCODE_IPC_HOOK_EXTHOST = /run/user/1000/vscode-ipc-94d41e1d-bcc1-47b9-a00e-4b0cccfb929a.sock
 # environment
 LC_NAME = en_CA.UTF-8
 # environment
@@ -95,7 +93,7 @@ MAKEFILE_LIST := Makefile
 # environment
 VSCODE_VERBOSE_LOGGING = true
 # environment
-VSCODE_PID = 11454
+VSCODE_PID = 50617
 # environment
 XDG_SESSION_TYPE = x11
 # automatic
@@ -214,7 +212,6 @@ VSCODE_CLI = 1
 ELECTRON_NO_ATTACH_CONSOLE = 1
 # environment
 XDG_GREETER_DATA_DIR = /var/lib/lightdm-data/mattheww
- 
 # default
 .FEATURES := target-specific order-only second-expansion else-if shortest-stem undefine oneshell nocomment grouped-target extra-prereqs archives jobserver output-sync check-symlink guile load
 # makefile (from 'Makefile', line 1)
@@ -250,17 +247,17 @@ src/window_size.c:
 #  Modification time never checked.
 #  File has not been updated.
 
-bin/pxl_sze: src/window_size.c src/create_buffer.c
+bin/pxl_sze: src/create_buffer.c src/window_size.c
 #  Implicit rule search has not been done.
 #  Modification time never checked.
 #  File has not been updated.
 #  recipe to execute (from 'Makefile', line 4):
-	$(CC) $^ -o $@
+	$(CC) $^ -o $@ -lncurses
 
 # Not a target:
 Makefile:
 #  Implicit rule search has been done.
-#  Last modified 2022-06-07 20:53:08.696264521
+#  Last modified 2022-06-08 22:13:49.89374553
 #  File has been updated.
 #  Successfully updated.
 
@@ -296,7 +293,10 @@ src/create_buffer.c:
 
 # strcache performance: lookups = 20 / hit rate = 25%
 # hash-table stats:
+ 
+make: *** No rule to make target 'all'.  Stop.
+
 # Load=15/8192=0%, Rehash=0, Collisions=0/20=0%
-# Finished Make data base on Tue Jun  7 20:53:17 2022
+# Finished Make data base on Fri Jun 10 19:37:12 2022
 
  
