@@ -1,0 +1,7 @@
+make --dry-run --keep-going --print-directory
+make: Entering directory '/home/mattheww/Projects/C/FastqcMatrix'
+ 
+gcc src/window_size.c src/create_buffer.c -o bin/pxl_sze
+ 
+make: Leaving directory '/home/mattheww/Projects/C/FastqcMatrix'
+ 
