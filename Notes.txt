@@ -1,0 +1,16 @@
+Defining base quality colours:
+
+Turns out ncurses only uses the colours defined in curses.h
+for compatibility reasons, but those colours can be tweaked
+
+To represent the different qualities of the base calls
+it is probably best to define ranges for the colours, until
+i look more into defining colour ranges in the future.
+
+Always need to add a gaurd statement for ncurses colours 
+as well of if(has_colors() == FALSE) the exit and endwin()
+as the terminal can display the colours.
+
+As mvprintw print the buffer, it actually just expands
+multiple addch commands. So it probably better to use the 
+addch commands and then add a colour pair to each one.
