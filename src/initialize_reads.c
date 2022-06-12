@@ -41,7 +41,6 @@ uint8_t color_pair_val(char* baseq){
 }
 
 
-
 typedef struct base_qc
 {
     char* called_base;
