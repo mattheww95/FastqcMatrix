@@ -10,7 +10,6 @@ Need to hold the color pair definitions in here too...
 
 need to make a jumptable base on ranges, or switch may be best
 */
-
 #include <ncurses.h>
 #include <stdint.h>
 
@@ -24,38 +23,29 @@ need to make a jumptable base on ranges, or switch may be best
 #define GOOD_QUALITY 3
 
 
-//--Define cut offs for quality
-#define GOOD_QUALITY_SCORE '5'
+//---define cut offs for quality
+#define GOOD_QUALITY_SCORE '1'
 #define MODERATE_QUALTIY_SCORE '.'
 // No need to do a poor one as it wil defualt
 
 
+uint8_t color_pair_val(char* baseq){
 
-uint8_t return_colour_pair(char basq){
-    //char base_num = baseq - '!'; // corresponds to 33 or 0 in encoding
-    //higher is better
-    
-    uint8_t ret_val;
-    switch (base_q)
-    {
-    case base_num > GOOD_QUALITY_SCORE;
-        ret_val = GOOD_QUALITY;
-        break;
-    case base_num > MODERATE_QUALITY_SCORE;
-        ret_val = MODERATE_QUALITY;
-        break;
-    
-    default:
-        ret_val = POOR_QUALITY;
-        break;
+    if(*baseq > GOOD_QUALITY_SCORE){
+        return GOOD_QUALITY;
+    }else if(*baseq > MODERATE_QUALITY){
+        return MODERATE_QUALTIY;
+    }else{
+        return POOR_QUALITY;
     }
-    return ret_val;
 }
+
+
 
 typedef struct base_qc
 {
     char* called_base;
-    char* qulait_value;
+    char* qaulity_value;
     uint8_t color_pair_val;
 
 }base_qc;
