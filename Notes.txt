@@ -14,3 +14,11 @@ as the terminal can display the colours.
 As mvprintw print the buffer, it actually just expands
 multiple addch commands. So it probably better to use the 
 addch commands and then add a colour pair to each one.
+
+
+No time to work today:( but it for sending data to the terminal 
+for display, probably best to create an array of structs containing 
+the nessecary colour pair and qc value (or index of the needed colour pair)
+
+Feeding this through a function as an array will likely be friendlier than
+before
