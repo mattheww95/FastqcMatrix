@@ -22,3 +22,25 @@ the nessecary colour pair and qc value (or index of the needed colour pair)
 
 Feeding this through a function as an array will likely be friendlier than
 before
+
+
+More information about fastq data can be found here: https://www.drive5.com/usearch/manual/quality_score.html
+
+
+FastQ files contain coordinates in their names as well, so they can be graphed to determine cluster belonging!
+
+ASCII chars range from 33 to 106 or ('!' to K) for new illumina
+
+and for old illumina '@' to 'j'
+
+both offset between 0 to 42 (corresponds to the q score)
+
+To calculate probability formula is P = 10^-Q/10
+
+and 
+
+Q is -10log(P)
+
+
+need to create a jump table for the coloured pairs or many
+defines
