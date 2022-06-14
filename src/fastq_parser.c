@@ -40,8 +40,8 @@ fastq_line* init_fastq_data(FILE* some_file_ptr){
     printf("alloc'd node1\n");
     node1->next = NULL;
 
-    fastq_line* start_of_list = malloc(sizeof(start_of_list));
-    start_of_list = node1;
+    fastq_line** start_of_list = malloc(sizeof(start_of_list));
+    start_of_list* = node1;
 
     while(fgets(line, LINE_SIZE, some_file_ptr)) {
         // TODO this can be cleaner as the standard comes in threes
