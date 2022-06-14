@@ -37,8 +37,7 @@ fastq_line** init_fastq_data(FILE* some_file_ptr){
     bool p_qual_time = false;
 
     fastq_line* node1 = malloc(sizeof(node1));
-    node1->next = NULL;
-
+    
     fastq_line** tracer = malloc(sizeof(tracer));
     fastq_line** start_of_line = malloc(sizeof(start_of_line));
     tracer = &node1;
@@ -46,35 +45,26 @@ fastq_line** init_fastq_data(FILE* some_file_ptr){
 
     while(fgets(line, LINE_SIZE, some_file_ptr)) {
         // TODO this can be cleaner as the standard comes in threes
-        if(!p_fql_hdr && line[0] == '@'){
-            // start the reading
-            printf("Header: %s\n", line);
-            node1->header = line;
-            p_fql_hdr = false;
+        if(line[0] == '@'){
+            fprintf(stderr, "Header: %s\n", line);
+            (*tracer)->header = malloc(sizeof((*tracer)->header) * strlen(line));
+            strcpy((*tracer)->header, line);
+            p_fql_hdr = true;
 
-        }else if(p_fql_hdr && !p_seq){
-           node1->sequence = line;
-           p_seq == true; 
-           printf("Sequence: %s\n", line);
-
-        }else if(line[0] == '+'){
-            p_qual_time = true;
-            printf("Plus: %s\n", line);
-
-        }else if(p_seq & p_qual_time & p_fql_hdr){
-            node1->quality_string = line;
+        }else if(!p_seq && (*tracer)->header != NULL){
+           (*tracer)->sequence = malloc(sizeof((*tracer)->sequence) * strlen(line));
+           strcpy((*tracer)->sequence, line);
+           printf("Sequence: %s\n", (*tracer)->sequence);
+        
+        }else if(p_seq && line[0] != '+'){
+            (*tracer)->quality_string = malloc(sizeof((*tracer)->quality_string) * strlen(line));
+            strcpy((*tracer)->quality_string, line);
             printf("Quality String: %s\n", line);
-            fastq_line* node2 = malloc(sizeof(node2));
-            node1->next = node2;
-            tracer = &node1->next;
-
-            p_fql_hdr = false;
-            p_seq = false;
-            p_qual_time = false;
+            (*tracer)->next = malloc(sizeof((*tracer)->next));
         }
 
     }
-
+    free(node1);
     return start_of_line;
 }
 
