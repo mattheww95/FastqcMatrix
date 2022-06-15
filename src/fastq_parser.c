@@ -29,43 +29,45 @@ typedef struct fastq_line{
 
 
 
-fastq_line** init_fastq_data(FILE* some_file_ptr){
+void init_fastq_data(FILE* some_file_ptr, fastq_line* node1){
     // iniitialize the fastq data struct
     char line[LINE_SIZE];
-    bool p_fql_hdr = false;
-    bool p_seq = false;
-    bool p_qual_time = false;
+    int p_qual_time = 0;
 
-    fastq_line* node1 = malloc(sizeof(node1));
-    
-    fastq_line** tracer = malloc(sizeof(tracer));
-    fastq_line** start_of_line = malloc(sizeof(start_of_line));
+    node1->header = NULL;
+    node1->sequence = NULL;
+    node1->quality_string = NULL;
+    node1->next = NULL;    
+    fastq_line** tracer;// = malloc(sizeof(tracer));
     tracer = &node1;
-    start_of_line = &node1;
 
     while(fgets(line, LINE_SIZE, some_file_ptr)) {
-        // TODO this can be cleaner as the standard comes in threes
+
         if(line[0] == '@'){
-            fprintf(stderr, "Header: %s\n", line);
-            (*tracer)->header = malloc(sizeof((*tracer)->header) * strlen(line));
+            (*tracer)->header = malloc(sizeof(*(*tracer)->header) * strlen(line));
             strcpy((*tracer)->header, line);
-            p_fql_hdr = true;
 
-        }else if(!p_seq && (*tracer)->header != NULL){
-           (*tracer)->sequence = malloc(sizeof((*tracer)->sequence) * strlen(line));
-           strcpy((*tracer)->sequence, line);
-           printf("Sequence: %s\n", (*tracer)->sequence);
-        
-        }else if(p_seq && line[0] != '+'){
-            (*tracer)->quality_string = malloc(sizeof((*tracer)->quality_string) * strlen(line));
+        }else if((*tracer)->header != NULL && (*tracer)->sequence == NULL){
+            (*tracer)->sequence = malloc(sizeof(*(*tracer)->sequence) * strlen(line));
+            strcpy((*tracer)->sequence, line);
+            printf("Sequence: %s\n", (*tracer)->sequence);
+
+        }else if((*tracer)->header != NULL && (*tracer)->sequence != NULL && p_qual_time == 0){
+            p_qual_time = 1;
+            
+        }else if(p_qual_time == 1){
+            (*tracer)->quality_string = malloc(sizeof(*(*tracer)->quality_string) * strlen(line));
             strcpy((*tracer)->quality_string, line);
-            printf("Quality String: %s\n", line);
-            (*tracer)->next = malloc(sizeof((*tracer)->next));
+            p_qual_time = 0;
+            (*tracer)->next = malloc(sizeof(*(*tracer)->next));
+            tracer = &(*tracer)->next;
+            (*tracer)->header = NULL;            
+            (*tracer)->sequence = NULL;            
+            (*tracer)->next = NULL;            
+            (*tracer)->quality_string = NULL;            
         }
-
     }
-    free(node1);
-    return start_of_line;
+    
 }
 
 
@@ -76,23 +78,29 @@ void load_fastq(char* filename){
     fptr = fopen(filename, "r");
     if(fptr == NULL){
         fprintf(stderr, "Could not open fastq file\n");
-        free(fptr);
         exit(-1);
     }
-   fastq_line** fastq_data = init_fastq_data(fptr);
-   fastq_line* entry = malloc(sizeof(entry));
-   entry = *fastq_data;
-   // something feels wrong..
-
-   while((*fastq_data)->next != NULL){
-       printf("Header: %s \n", entry->header);
-       printf("Sequence: %s \n", entry->sequence);
-       printf("Quality Data: %s \n", entry->quality_string);
-       fastq_data = &entry->next;
-       entry = *fastq_data;
+    fastq_line* node = malloc(sizeof(*node));
+    fastq_line** fastq_data = NULL;
+    fastq_data = &node;
+   init_fastq_data(fptr, node); // pasing in double pointer as to not have dangling pointer or stale stack frame
+   if(fastq_data == NULL){
+       fprintf(stderr, "No data returned\n");
+       exit(-1);
    }
-   //free(entry);
-   //free(fastq_data);
+   fastq_line* entry;
+
+   while((*fastq_data)->header != NULL){ // header is null before next is
+       printf("Header: %s \n", (*fastq_data)->header);
+       printf("Sequence: %s \n", (*fastq_data)->sequence);
+       printf("Quality Data: %s \n", (*fastq_data)->quality_string);
+       entry = *fastq_data; 
+       fastq_data = &(*fastq_data)->next;
+       fprintf(stderr, "Freeing entry: %s\n", entry->header);
+       free(entry);
+   }
+   fclose(fptr);
+   free(*fastq_data);
 }
 
 
