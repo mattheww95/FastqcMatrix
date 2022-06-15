@@ -74,15 +74,15 @@ void init_fastq_data(FILE* some_file_ptr, fastq_line* node1){
 void load_fastq(char* filename){
     // Load a fastq file and return the initialize a fastq data struct
 
-    FILE *fptr;
-    fptr = fopen(filename, "r");
-    if(fptr == NULL){
-        fprintf(stderr, "Could not open fastq file\n");
-        exit(-1);
-    }
-    fastq_line* node = malloc(sizeof(*node));
-    fastq_line** fastq_data = NULL;
-    fastq_data = &node;
+   FILE *fptr;
+   fptr = fopen(filename, "r");
+   if(fptr == NULL){
+       fprintf(stderr, "Could not open fastq file\n");
+       exit(-1);
+   }
+   fastq_line* node = malloc(sizeof(*node));
+   fastq_line** fastq_data = NULL;
+   fastq_data = &node;
    init_fastq_data(fptr, node); // pasing in double pointer as to not have dangling pointer or stale stack frame
    if(fastq_data == NULL){
        fprintf(stderr, "No data returned\n");
@@ -90,17 +90,20 @@ void load_fastq(char* filename){
    }
    fastq_line* entry;
 
-   while((*fastq_data)->header != NULL){ // header is null before next is
+   while((*fastq_data)->next != NULL){
        printf("Header: %s \n", (*fastq_data)->header);
        printf("Sequence: %s \n", (*fastq_data)->sequence);
        printf("Quality Data: %s \n", (*fastq_data)->quality_string);
-       entry = *fastq_data; 
+       entry = *fastq_data;
        fastq_data = &(*fastq_data)->next;
        fprintf(stderr, "Freeing entry: %s\n", entry->header);
+       free(entry->header);
+       free(entry->quality_string);
+       free(entry->sequence);
        free(entry);
    }
-   fclose(fptr);
    free(*fastq_data);
+   fclose(fptr);
 }
 
 
