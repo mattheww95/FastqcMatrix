@@ -17,6 +17,7 @@ going to make this a module for loading and preparing fastq data
 #include <stdlib.h>
 #include <string.h> // need to wrap this in ifndef for gnu vs posix
 #include <stdbool.h>
+#include <stdint.h>
 
 #define LINE_SIZE 256
 
@@ -89,7 +90,7 @@ void load_fastq(char* filename){
        exit(-1);
    }
    fastq_line* entry;
-
+    // this is to destruct the linked list, will probaby move it into its own method
    while((*fastq_data)->next != NULL){
        printf("Header: %s \n", (*fastq_data)->header);
        printf("Sequence: %s \n", (*fastq_data)->sequence);
@@ -104,6 +105,17 @@ void load_fastq(char* filename){
    }
    free(*fastq_data);
    fclose(fptr);
+}
+
+typedef struct fastq_nucleotide{
+    char nucleotide;
+    char quality_value;
+    uint8_t color_pair;
+}fastq_nucleotide;
+
+fastq_nucleotide* reads_to_fastq(fastq_line** fastq_data){
+    // convert the nuclotides from the linked list into an array of fastq_nucleotide structs.
+    // This can probably be done earlier
 }
 
 
