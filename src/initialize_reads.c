@@ -10,8 +10,7 @@ Need to hold the color pair definitions in here too...
 
 need to make a jumptable base on ranges, or switch may be best
 */
-#include <ncurses.h>
-#include <stdint.h>
+#include <initialize_reads.h>
 
 
 // for new illumina only
@@ -34,17 +33,9 @@ uint8_t color_pair_val(char* baseq){
     if(*baseq > GOOD_QUALITY_SCORE){
         return GOOD_QUALITY;
     }else if(*baseq > MODERATE_QUALITY){
-        return MODERATE_QUALTIY;
+        return MODERATE_QUALITY;
     }else{
         return POOR_QUALITY;
     }
 }
 
-
-typedef struct base_qc
-{
-    char* called_base;
-    char* qaulity_value;
-    uint8_t color_pair_val;
-
-}base_qc;

@@ -18,8 +18,17 @@ going to make this a module for loading and preparing fastq data
 #include <string.h> // need to wrap this in ifndef for gnu vs posix
 #include <stdbool.h>
 #include <stdint.h>
+#include <initialize_reads.h> 
 
 #define LINE_SIZE 256
+
+
+typedef struct fastq_nucleotide{
+    char nucleotide;
+    char quality_value;
+    uint8_t color_pair;
+}fastq_nucleotide;
+
 
 typedef struct fastq_line{
     char* header;
@@ -72,6 +81,23 @@ void init_fastq_data(FILE* some_file_ptr, fastq_line* node1){
 }
 
 
+void reads_to_fastq(fastq_line* fastq_data_){
+    // Create an array of arrays holding struct info for each sequence
+    // this can definately be done earlier...
+    // make a struct array
+    fastq_nucleotide* seq_data = malloc(sizeof(fastq_nucleotide) * strlen(fastq_data_->quality_string));
+    //memset(seq_data, 0, strlen(fastq_data_->quality_string) * sizeof(fastq_nucleotide*));
+    for(size_t i = 0; i < strlen(fastq_data_->sequence); ++i){ 
+        seq_data[i].nucleotide = fastq_data_->sequence[i];
+        seq_data[i].quality_value = fastq_data_->quality_string[i];
+        seq_data[i].color_pair = color_pair_val(&fastq_data_->quality_string[i]);
+    }
+    free(seq_data);
+//    return seq_data;
+
+}
+
+
 void load_fastq(char* filename){
     // Load a fastq file and return the initialize a fastq data struct
 
@@ -95,6 +121,7 @@ void load_fastq(char* filename){
        printf("Header: %s \n", (*fastq_data)->header);
        printf("Sequence: %s \n", (*fastq_data)->sequence);
        printf("Quality Data: %s \n", (*fastq_data)->quality_string);
+       reads_to_fastq(*fastq_data);
        entry = *fastq_data;
        fastq_data = &(*fastq_data)->next;
        fprintf(stderr, "Freeing entry: %s\n", entry->header);
@@ -107,16 +134,9 @@ void load_fastq(char* filename){
    fclose(fptr);
 }
 
-typedef struct fastq_nucleotide{
-    char nucleotide;
-    char quality_value;
-    uint8_t color_pair;
-}fastq_nucleotide;
 
-fastq_nucleotide* reads_to_fastq(fastq_line** fastq_data){
-    // convert the nuclotides from the linked list into an array of fastq_nucleotide structs.
-    // This can probably be done earlier
-}
+
+
 
 
 int main(int argc, char** argv){
