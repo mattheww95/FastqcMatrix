@@ -21,7 +21,7 @@ going to make this a module for loading and preparing fastq data
 #include <initialize_reads.h> 
 
 #define LINE_SIZE 256
-
+#define FASTQ_LOADS 1000
 
 typedef struct fastq_nucleotide{
     char nucleotide;
@@ -103,7 +103,7 @@ fastq_nucleotide* reads_to_fastq(fastq_line* fastq_data_){
 void destroy_fastq_term(fastq_nucleotides data){
     // Free the memory used to display the data to the terminal
     for(size_t i = 0; i < data.counter;++i){
-        free(data.counter[i]);
+        free(data.data[i]);
     }
     
 }
@@ -112,7 +112,6 @@ void destroy_fastq_line(fastq_line* entry){
     free(entry->header);
     free(entry->quality_string);
     free(entry->sequence);
-    free(entry);
 }
 
 
@@ -136,7 +135,7 @@ void load_fastq(char* filename){
 
    fastq_nucleotides fastq_term;
    fastq_term.counter = 0;
-   fastq_term.data  = malloc(sizeof(fastq_nucleotide*) * strlen(500)); // mallcoing enough for 500 lines while playing:
+   fastq_term.data  = malloc(sizeof(fastq_nucleotide*) * FASTQ_LOADS); // malloc enough for 500 lines while playing:
    
 
    fastq_line* entry;
@@ -153,7 +152,8 @@ void load_fastq(char* filename){
        fprintf(stderr, "Freeing entry: %s\n", entry->header);
        destroy_fastq_line(entry);
    }
-   free(*fastq_data);
+   destroy_fastq_term(fastq_term);
+   //free(*fastq_data);
    fclose(fptr);
 }
 
