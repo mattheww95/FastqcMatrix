@@ -20,7 +20,7 @@ need to make a jumptable base on ranges, or switch may be best
 #define POOR_QUALITY 1
 #define MODERATE_QUALITY 2
 #define GOOD_QUALITY 3
-
+#define ERROR 4
 
 //---define cut offs for quality
 #define GOOD_QUALITY_SCORE '1'
@@ -29,7 +29,10 @@ need to make a jumptable base on ranges, or switch may be best
 
 
 uint8_t color_pair_val(char* baseq){
-
+    if(baseq == NULL){
+        fprintf(stderr, "Quality data does not exits\n");
+        exit(-1);
+    }
     if(*baseq > GOOD_QUALITY_SCORE){
         return GOOD_QUALITY;
     }else if(*baseq > MODERATE_QUALITY){
@@ -37,5 +40,6 @@ uint8_t color_pair_val(char* baseq){
     }else{
         return POOR_QUALITY;
     }
+   return ERROR;
 }
 

@@ -62,9 +62,9 @@ void init_fastq_data(FILE* some_file_ptr, fastq_line* node1){
             strcpy((*tracer)->header, line);
 
         }else if((*tracer)->header != NULL && (*tracer)->sequence == NULL){
-            (*tracer)->sequence = malloc(sizeof(*(*tracer)->sequence) * strlen(line));
+            (*tracer)->sequence = malloc(sizeof((*tracer)->sequence) * strlen(line));
             strcpy((*tracer)->sequence, line);
-            printf("Sequence: %s\n", (*tracer)->sequence);
+            //printf("Sequence: %s\n", (*tracer)->sequence);
 
         }else if((*tracer)->header != NULL && (*tracer)->sequence != NULL && p_qual_time == 0){
             p_qual_time = 1;
@@ -73,7 +73,7 @@ void init_fastq_data(FILE* some_file_ptr, fastq_line* node1){
             (*tracer)->quality_string = malloc(sizeof(*(*tracer)->quality_string) * strlen(line));
             strcpy((*tracer)->quality_string, line);
             p_qual_time = 0;
-            (*tracer)->next = malloc(sizeof(*(*tracer)->next));
+            (*tracer)->next = malloc(sizeof((*tracer)->next));
             tracer = &(*tracer)->next;
             (*tracer)->header = NULL;            
             (*tracer)->sequence = NULL;            
@@ -141,15 +141,15 @@ void load_fastq(char* filename){
    fastq_line* entry;
     // this is to destruct the linked list, will probaby move it into its own method
    while((*fastq_data)->next != NULL){
-       printf("Header: %s \n", (*fastq_data)->header);
-       printf("Sequence: %s \n", (*fastq_data)->sequence);
-       printf("Quality Data: %s \n", (*fastq_data)->quality_string);
+       //printf("Header: %s \n", (*fastq_data)->header);
+       //printf("Sequence: %s \n", (*fastq_data)->sequence);
+       //printf("Quality Data: %s \n", (*fastq_data)->quality_string);
        fastq_term.data[fastq_term.counter] = reads_to_fastq(*fastq_data);
        fastq_term.counter += 1;
 
        entry = *fastq_data;
        fastq_data = &(*fastq_data)->next;
-       fprintf(stderr, "Freeing entry: %s\n", entry->header);
+       //fprintf(stderr, "Freeing entry: %s\n", entry->header);
        destroy_fastq_line(entry);
    }
    destroy_fastq_term(fastq_term);
