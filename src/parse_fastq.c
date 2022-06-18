@@ -49,15 +49,19 @@ fastq_nucleotide* init_fastq_term(char* sequence_data, char* quality_data){
 
    // only need enough room as is the length of one string as they benefit one another
    fastq_nucleotide* terminal_data = malloc(sizeof(fastq_nucleotide) * strlen(sequence_data));
+
    if(strlen(sequence_data) == 0){
        fprintf(stderr, "No seqeunce data\n");
        exit(-1);
    }
 
     for(size_t i = 0; i < strlen(sequence_data); ++i){
+        terminal_data[i].quality_value = NULL; // trying to get rid of valgrin warning
+        terminal_data[i].nucleotide = NULL; // trying to get rid of valgrin warning
+        terminal_data[i].color_pair = 4; // trying to get rid of valgrin warning
         terminal_data[i].nucleotide = sequence_data[i];
         terminal_data[i].quality_value = quality_data[i]; 
-        terminal_data[i].color_pair = color_pair_val(&quality_data[i]);
+        terminal_data[i].color_pair = color_pair_val(&terminal_data[i].quality_value);
     }
     return terminal_data;
 
@@ -77,6 +81,7 @@ void destroy_term_data(fastq_nucleotides* data_remove){
    for(size_t i = 0; i < data_remove->counter; ++i){
        free(data_remove->data[i]);
    }
+   free(data_remove->data);
    free(data_remove);
 
 }
@@ -109,7 +114,7 @@ void init_fastq_data(FILE* fastq_data){
    char line[LINE_SIZE];
    uint_fast8_t header_ = 0;
    uint_fast8_t sequence_next = 0; // if sequence is next, be 1
-   while(fgets(line, LINE_SIZE, fastq_data)){
+   while(fgets(line, LINE_SIZE, fastq_data) != NULL){
        if(line[0] == '@'){
            header_ = 1;
        }else if(header_ && strlen(sequence) == 0){
@@ -127,6 +132,7 @@ void init_fastq_data(FILE* fastq_data){
        }
    }
    destroy_term_data(term_data);
+   fclose(fastq_data);
 
 }
 
@@ -152,10 +158,9 @@ void load_fastq(char* filename){
 
     init_fastq_data(fptr);
 
-    fclose(fptr);
 
 }
 
 int main(int argc, char** argv){
-    if(argc == 1) load_fastq(argv[1]);
+    if(argc == 2) load_fastq(argv[1]);
 }

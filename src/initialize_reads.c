@@ -28,18 +28,14 @@ need to make a jumptable base on ranges, or switch may be best
 // No need to do a poor one as it wil defualt
 
 
-uint8_t color_pair_val(char* baseq){
-    if(baseq == NULL){
-        fprintf(stderr, "Quality data does not exits\n");
-        exit(-1);
-    }
-    if(*baseq > GOOD_QUALITY_SCORE){
+uint8_t color_pair_val(char baseq){
+    
+     if(baseq > GOOD_QUALITY_SCORE){
         return GOOD_QUALITY;
-    }else if(*baseq > MODERATE_QUALITY){
+     }else if(baseq > MODERATE_QUALITY){
         return MODERATE_QUALITY;
-    }else{
-        return POOR_QUALITY;
-    }
-   return ERROR;
+     }else{
+         return POOR_QUALITY;
+     }
 }
 
