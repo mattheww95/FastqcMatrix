@@ -29,6 +29,10 @@ typedef struct fastq_nucleotide{
     uint8_t color_pair;
 }fastq_nucleotide;
 
+typedef struct fastq_nucleotides{
+    fastq_nucleotide** data;
+    uint32_t counter;
+}fastq_nucleotides;
 
 typedef struct fastq_line{
     char* header;
@@ -81,7 +85,7 @@ void init_fastq_data(FILE* some_file_ptr, fastq_line* node1){
 }
 
 
-void reads_to_fastq(fastq_line* fastq_data_){
+fastq_nucleotide* reads_to_fastq(fastq_line* fastq_data_){
     // Create an array of arrays holding struct info for each sequence
     // this can definately be done earlier...
     // make a struct array
@@ -92,9 +96,23 @@ void reads_to_fastq(fastq_line* fastq_data_){
         seq_data[i].quality_value = fastq_data_->quality_string[i];
         seq_data[i].color_pair = color_pair_val(&fastq_data_->quality_string[i]);
     }
-    free(seq_data);
-//    return seq_data;
+    return seq_data;
 
+}
+
+void destroy_fastq_term(fastq_nucleotides data){
+    // Free the memory used to display the data to the terminal
+    for(size_t i = 0; i < data.counter;++i){
+        free(data.counter[i]);
+    }
+    
+}
+
+void destroy_fastq_line(fastq_line* entry){
+    free(entry->header);
+    free(entry->quality_string);
+    free(entry->sequence);
+    free(entry);
 }
 
 
@@ -115,20 +133,25 @@ void load_fastq(char* filename){
        fprintf(stderr, "No data returned\n");
        exit(-1);
    }
+
+   fastq_nucleotides fastq_term;
+   fastq_term.counter = 0;
+   fastq_term.data  = malloc(sizeof(fastq_nucleotide*) * strlen(500)); // mallcoing enough for 500 lines while playing:
+   
+
    fastq_line* entry;
     // this is to destruct the linked list, will probaby move it into its own method
    while((*fastq_data)->next != NULL){
        printf("Header: %s \n", (*fastq_data)->header);
        printf("Sequence: %s \n", (*fastq_data)->sequence);
        printf("Quality Data: %s \n", (*fastq_data)->quality_string);
-       reads_to_fastq(*fastq_data);
+       fastq_term.data[fastq_term.counter] = reads_to_fastq(*fastq_data);
+       fastq_term.counter += 1;
+
        entry = *fastq_data;
        fastq_data = &(*fastq_data)->next;
        fprintf(stderr, "Freeing entry: %s\n", entry->header);
-       free(entry->header);
-       free(entry->quality_string);
-       free(entry->sequence);
-       free(entry);
+       destroy_fastq_line(entry);
    }
    free(*fastq_data);
    fclose(fptr);
