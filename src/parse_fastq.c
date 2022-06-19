@@ -108,26 +108,34 @@ void init_fastq_data(FILE* fastq_data){
 
     // make room to holde the sequences and qual sequences
    char sequence[LINE_SIZE];
-   memset(sequence, 'c', LINE_SIZE);
+   memset(sequence, 0, LINE_SIZE);
    char quality_sequence[LINE_SIZE];
-   memset(sequence, 'c', LINE_SIZE);
+   memset(sequence, 0, LINE_SIZE);
+
    char line[LINE_SIZE];
    uint_fast8_t header_ = 0;
    uint_fast8_t sequence_next = 0; // if sequence is next, be 1
    while(fgets(line, LINE_SIZE, fastq_data) != NULL){
        if(line[0] == '@'){
            header_ = 1;
-       }else if(header_ && strlen(sequence) == 0){
+       }else if(header_ == 1 && strlen(sequence) == 0){
            strcpy(sequence, line);
-       }else if(!sequence_next){
+       }else if(sequence_next == 0){ // need a refresher of bools
            sequence_next = 1;
-       }else if(sequence_next){
+       }else if(sequence_next == 1){
            strcpy(quality_sequence, line);
-           if(strlen(quality_sequence) > 0 && strlen(sequence) > 0 ){
+           printf("Sequence: %s\n", sequence);
+           printf("Quality Sequence: %s\n", quality_sequence);
+           if(strlen(quality_sequence) == strlen(sequence)){
                term_data->data[term_data->counter] = init_fastq_term(sequence, quality_sequence);
                term_data->counter++;
+            }else{
+                fprintf(stderr, "Quality sequence and sequence length do not match\n");
+                exit(-1);
             }
-           memset(sequence, 'C', LINE_SIZE);
+            header_ = 0;
+            sequence_next = 0;
+           memset(sequence, 0, LINE_SIZE);
 
        }
    }
