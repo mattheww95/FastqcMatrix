@@ -26,9 +26,25 @@ First attempt:
     e.g.
      struct display{
          fastq_nucleotides*;
+         uint length_of_string;
          uint cooldown;
-
+         uint position; The position to set the array too
      } Whenever a new set of fastq_nucleoties is to be loaded in the cooldown can be reset!
+
+
+     Need a set to decide on if a position is or isnt in use. Might keep a set of positions, and a queue
+     loaded up of new positions, with a position in the set. And with cool down positions taken up,
+     when a col is 0 it is free and a cool down can be added
+
+     set_watch = [pos1, pos2, pos3, pos4, pos5, pos6 ... posN]
+     Values in the array:
+
+     set_watch = [0, 0, 0, 0, 0, 0 ... 0]
+     set_watch = [10, 5, 8, 8, 2 ,4 ...]
+     
+
+
+
 
     hashmap of column positions:
                             pos_1 = fastq_nucleotides
@@ -49,6 +65,12 @@ First attempt:
                 terminal_row* = [ -------------------------------------------------- ]
             ]
 
+    the rows can then be transcribed into the screens buffer
+
+
+Attempt 2:
+    I have realized attempt 1 is likely overly complicated. It would likely be better to create a 
+    coordinate system with some defines progress values through their coordinates
 
 2022-06-20: Matthew Wells
 */
@@ -59,6 +81,7 @@ First attempt:
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 
 #define TERM_SIZE(x, y) (x * y)
@@ -80,8 +103,6 @@ struct winsize get_window_size(){
     close(fd);
     return ws;
 }
-
-
 
 
 

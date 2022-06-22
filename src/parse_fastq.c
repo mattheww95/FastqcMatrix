@@ -86,7 +86,7 @@ void destroy_term_data(fastq_nucleotides* data_remove){
 
 }
 
-void init_fastq_data(FILE* fastq_data){
+fastq_nucleotides* init_fastq_data(FILE* fastq_data){
     /*
         Function: init_fastq_term
         -------------------------
@@ -139,8 +139,9 @@ void init_fastq_data(FILE* fastq_data){
 
        }
    }
-   destroy_term_data(term_data);
+   //destroy_term_data(term_data);
    fclose(fastq_data);
+   return term_data;
 
 }
 
@@ -164,7 +165,8 @@ void load_fastq(char* filename){
         exit(-1);
     }
 
-    init_fastq_data(fptr);
+    fastq_nucleotides* term_data = init_fastq_data(fptr);
+    destroy_term_data(term_data);
 
 
 }
