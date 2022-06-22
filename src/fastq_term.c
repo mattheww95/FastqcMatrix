@@ -70,7 +70,11 @@ First attempt:
 
 Attempt 2:
     I have realized attempt 1 is likely overly complicated. It would likely be better to create a 
-    coordinate system with some defines progress values through their coordinates
+    coordinate system with some defines progress values through their coordinates.
+
+   e.g. load a character up, and progress it along the screen. every character in a buffer needs to be incremented one
+    row length till off the screen 
+
 
 2022-06-20: Matthew Wells
 */
@@ -82,11 +86,22 @@ Attempt 2:
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
-
+#include <ncurses.h>
+#include <string.h>
 
 #define TERM_SIZE(x, y) (x * y)
 
 struct winsize get_window_size(){
+    /*
+        Function: get_windows_size
+        --------------------------
+
+        Return the winsize struct which contains the values required for determining the 
+        terminals size.
+
+        return: struct winsize 
+    
+    */
     struct winsize ws; //winsize holds two unsigned shorts, according to termios.h
     int fd;
     fd = open("/dev/tty", O_RDWR);
@@ -98,11 +113,105 @@ struct winsize get_window_size(){
         printf("An error with ioctl that I did not google\n");
         err(1, "/dev/tty");
     }
-    
 
     close(fd);
     return ws;
 }
+
+
+char* get_term_window(struct winsize window){
+    /*
+    Need to figure out how to get attribute inline to work properly and toggle on or off
+
+        Function: get_term_window
+        -------------------------
+
+        Create the terminal window buffer and set the memory to one static value for test purposes
+
+        window: A winsize struct to get termninal bounds
+
+        return: char pointer to the buffer in the terminal 
+    */
+    char* term_window = malloc((window.ws_col * window.ws_row) * sizeof(term_window));
+    memset(term_window, ' ', TERM_SIZE(window.ws_col, window.ws_row));
+    return term_window;
+}
+
+
+uint32_t row_rand_position(unsigned short row_length){
+    /*
+        Function: row_rand_position
+        ---------------------------
+        Return some random position in the row to populate with a character.
+        
+        row_length: The struct winsize ws_row attribute
+        return: Row position 
+    */
+   uint32_t r = rand() % row_length;
+   return r;
+}
+
+
+void populate_rows(char** term_buffer, unsigned short row_length){
+    /*
+        Function: populate_rows
+        -----------------------
+        Put some random characters into the first row of the terminal buffer
+
+        term_buffer: The array to be printed to the terminal
+        row_length: The row lenght to be populated
+        return: nothin 
+    */
+   uint32_t number_rows_fill = row_length * 0.75; // populate 50% of the columns with chars
+   for(size_t i = 0; i < number_rows_fill; i++){
+       uint32_t val = row_rand_position(row_length);
+       (*term_buffer)[val] = 'X'; // fill the buffer with some arbitrary value
+   }
+   
+}
+
+
+void increment_vals(char** term, unsigned short width){
+    for(size_t i = 0; i < width; i++){
+        if((*term)[i] == 'X'){
+            (*term)[i + width] = 'X';
+        }
+    }
+}
+
+
+int main(){
+    struct winsize ws = get_window_size();
+    size_t term_size = TERM_SIZE(ws.ws_col, ws.ws_row);
+    char* term = get_term_window(ws);
+    populate_rows(&term, ws.ws_col); // passing col, as that is the number of rows
+    getch();
+    initscr();
+
+    mvprintw(0, 0, term);
+    refresh();
+    getch();
+    clear();
+    increment_vals(&term, ws.ws_col);
+    mvprintw(0, 0, term);
+    refresh();
+    getch();
+
+    increment_vals(&term, ws.ws_col);
+    mvprintw(0, 0, term);
+    refresh();
+    getch();
+    clear();
+    mvprintw(0,0, term);
+    refresh();
+    getch();
+
+    endwin();
+    return 0;
+}
+
+
+
 
 
 
