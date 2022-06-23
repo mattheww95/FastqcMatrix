@@ -171,10 +171,10 @@ void populate_rows(char** term_buffer, unsigned short row_length){
 }
 
 
-void increment_vals(char** term, unsigned short width){
-    for(size_t i = 0; i < width; i++){
+void increment_vals(char** term, struct winsize ws_, unsigned short row_val){
+    for(size_t i = 0; i < (ws_.ws_col * row_val); i++){
         if((*term)[i] == 'X'){
-            (*term)[i + width] = 'X';
+            (*term)[i + ws_.ws_col] = 'X';
         }
     }
 }
@@ -185,32 +185,24 @@ int main(){
     size_t term_size = TERM_SIZE(ws.ws_col, ws.ws_row);
     char* term = get_term_window(ws);
     populate_rows(&term, ws.ws_col); // passing col, as that is the number of rows
-    getch();
+    fprintf(stderr, "Rows size %ud", ws.ws_row);
     initscr();
-
-    mvprintw(0, 0, term);
-    refresh();
-    getch();
-    clear();
-    increment_vals(&term, ws.ws_col);
-    mvprintw(0, 0, term);
-    refresh();
-    getch();
-
-    increment_vals(&term, ws.ws_col);
-    mvprintw(0, 0, term);
-    refresh();
-    getch();
-    clear();
     mvprintw(0,0, term);
     refresh();
     getch();
-
+    unsigned short accu = 0;
+    while (accu != ws.ws_row)
+    {
+        increment_vals(&term, ws, accu);
+        mvprintw(0, 0, term);
+        accu++;
+        getch();
+    }
+    
     endwin();
+    term[term_size] = '\0';
     return 0;
 }
-
-
 
 
 
