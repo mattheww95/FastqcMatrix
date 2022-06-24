@@ -166,6 +166,9 @@ void load_fastq(char* filename){
     }
 
     fastq_nucleotides* term_data = init_fastq_data(fptr);
+    for(size_t i = 0; i < term_data->counter; i++){
+        term_data->data[i]; 
+    }
     destroy_term_data(term_data);
 
 

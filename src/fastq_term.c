@@ -209,7 +209,6 @@ int main(){
     initscr();
     mvprintw(0, 0, term);
     refresh();
-    getch();
     unsigned long int accu = 1; // skip first row, so row position is always positive
     while (1)
     {
@@ -218,8 +217,8 @@ int main(){
         }
         test_increment_vals(&term, &ws, accu);
         mvprintw(0, 0, term);
+        refresh();
         ++accu;
-        getch();
     }
     
     endwin();
