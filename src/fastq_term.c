@@ -90,6 +90,7 @@ Attempt 2:
 #include <string.h>
 
 #define TERM_SIZE(x, y) (x * y)
+#define FILL_CHAR ' '
 
 struct winsize get_window_size(){
     /*
@@ -132,8 +133,8 @@ char* get_term_window(struct winsize window){
 
         return: char pointer to the buffer in the terminal 
     */
-    char* term_window = malloc((window.ws_col * window.ws_row) * sizeof(term_window));
-    memset(term_window, ' ', TERM_SIZE(window.ws_col, window.ws_row));
+    char* term_window = malloc((window.ws_col * window.ws_row) * sizeof(*term_window));
+    memset(term_window, FILL_CHAR, TERM_SIZE(window.ws_col, window.ws_row));
     return term_window;
 }
 
@@ -171,10 +172,22 @@ void populate_rows(char** term_buffer, unsigned short row_length){
 }
 
 
-void increment_vals(char** term, struct winsize ws_, unsigned short row_val){
-    for(size_t i = 0; i < (ws_.ws_col * row_val); i++){
+void increment_vals(char** term, const struct winsize* restrict ws_, const unsigned short row_val){
+    /*
+        Function: increment_vals
+        ------------------------
+        Increment the where the x is, moving it down the screen
+
+        term: A pointer to the start of the array
+        ws_: the winsize struct holding the array bounds
+        row_val: which row to place the new information
+
+        return: void 
+    */
+    for(size_t i = 0; i < (ws_->ws_col * row_val); i++){
         if((*term)[i] == 'X'){
-            (*term)[i + ws_.ws_col] = 'X';
+            (*term)[i + ws_->ws_col] = 'X';
+            (*term)[i] = FILL_CHAR; // bounds check not needed
         }
     }
 }
@@ -187,13 +200,13 @@ int main(){
     populate_rows(&term, ws.ws_col); // passing col, as that is the number of rows
     fprintf(stderr, "Rows size %ud", ws.ws_row);
     initscr();
-    mvprintw(0,0, term);
+    mvprintw(0, 0, term);
     refresh();
     getch();
-    unsigned short accu = 0;
+    unsigned short accu = 1; // skip first row, so row position is always positive
     while (accu != ws.ws_row)
     {
-        increment_vals(&term, ws, accu);
+        increment_vals(&term, &ws, accu);
         mvprintw(0, 0, term);
         accu++;
         getch();
@@ -201,6 +214,7 @@ int main(){
     
     endwin();
     term[term_size] = '\0';
+    free(term);
     return 0;
 }
 
