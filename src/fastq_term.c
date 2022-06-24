@@ -1,10 +1,6 @@
 /*
-
 Initialize the window for printing the fastq data, additionally process
 where to but the characters.
-
-
-
 
 General notes:
     - The buffer on the screen will be serially written into then updated, fortunately ncurses controls
@@ -12,7 +8,7 @@ General notes:
     - Each string will need to belong a certain column which must always have atleast one space before the next
     sequence
 
-First attempt:
+First Idea:
     1.  Create a hashmap one position for each column in the terminal.
     2. initialize each column with either a fastq value or a cool down period 
         - The cool down period determining how long until a new read can be added to that position
@@ -41,9 +37,6 @@ First attempt:
 
      set_watch = [0, 0, 0, 0, 0, 0 ... 0]
      set_watch = [10, 5, 8, 8, 2 ,4 ...]
-     
-
-
 
 
     hashmap of column positions:
@@ -68,12 +61,15 @@ First attempt:
     the rows can then be transcribed into the screens buffer
 
 
-Attempt 2:
+Second Idea:
     I have realized attempt 1 is likely overly complicated. It would likely be better to create a 
     coordinate system with some defines progress values through their coordinates.
 
    e.g. load a character up, and progress it along the screen. every character in a buffer needs to be incremented one
     row length till off the screen 
+
+Third Idea:
+    Fill the rows and spaces and increment all values up a level
 
 
 2022-06-20: Matthew Wells
@@ -88,6 +84,7 @@ Attempt 2:
 #include <stdint.h>
 #include <ncurses.h>
 #include <string.h>
+
 
 #define TERM_SIZE(x, y) (x * y)
 #define FILL_CHAR ' '
@@ -134,7 +131,7 @@ char* get_term_window(struct winsize window){
         return: char pointer to the buffer in the terminal 
     */
     char* term_window = malloc((window.ws_col * window.ws_row) * sizeof(*term_window));
-    memset(term_window, FILL_CHAR, TERM_SIZE(window.ws_col, window.ws_row));
+    memset(term_window, FILL_CHAR, TERM_SIZE(window.ws_col, window.ws_row)); // upgrade to memset_s for safety checks
     return term_window;
 }
 
@@ -153,17 +150,17 @@ uint32_t row_rand_position(unsigned short row_length){
 }
 
 
-void populate_rows(char** term_buffer, unsigned short row_length){
+void test_populate_rows(char** term_buffer, unsigned short row_length){
     /*
-        Function: populate_rows
+        Function: test_populate_rows
         -----------------------
         Put some random characters into the first row of the terminal buffer
 
         term_buffer: The array to be printed to the terminal
         row_length: The row lenght to be populated
-        return: nothin 
+        return: nothing
     */
-   uint32_t number_rows_fill = row_length * 0.75; // populate 50% of the columns with chars
+   uint32_t number_rows_fill = row_length * 0.1; // populate 50% of the columns with chars
    for(size_t i = 0; i < number_rows_fill; i++){
        uint32_t val = row_rand_position(row_length);
        (*term_buffer)[val] = 'X'; // fill the buffer with some arbitrary value
@@ -172,48 +169,62 @@ void populate_rows(char** term_buffer, unsigned short row_length){
 }
 
 
-void increment_vals(char** term, const struct winsize* restrict ws_, const unsigned short row_val){
+void test_increment_vals(char** term, const struct winsize* restrict ws_, const unsigned short row_val){
     /*
-        Function: increment_vals
+        Function: test_increment_vals
         ------------------------
         Increment the where the x is, moving it down the screen
 
         term: A pointer to the start of the array
         ws_: the winsize struct holding the array bounds
         row_val: which row to place the new information
-
         return: void 
     */
-    for(size_t i = 0; i < (ws_->ws_col * row_val); i++){
+
+    size_t term_size = TERM_SIZE(ws_->ws_col, ws_->ws_row);
+    for(size_t i = term_size; i != 0; i--){
         if((*term)[i] == 'X'){
             (*term)[i + ws_->ws_col] = 'X';
             (*term)[i] = FILL_CHAR; // bounds check not needed
         }
     }
+    if(row_val == (ws_->ws_row - 1)){
+        for(size_t i = ((row_val - 1) * ws_->ws_col); i < (TERM_SIZE(ws_->ws_row, ws_->ws_col)); i++){
+            (*term)[i] = FILL_CHAR;
+        }
+    }
 }
+
+
+
 
 
 int main(){
     struct winsize ws = get_window_size();
-    size_t term_size = TERM_SIZE(ws.ws_col, ws.ws_row);
+    size_t term_size = TERM_SIZE(ws.ws_col, ws.ws_row); // should make this static so does not always need to be recalculated
     char* term = get_term_window(ws);
-    populate_rows(&term, ws.ws_col); // passing col, as that is the number of rows
+    test_populate_rows(&term, ws.ws_col); // passing col, as that is the number of rows
     fprintf(stderr, "Rows size %ud", ws.ws_row);
     initscr();
     mvprintw(0, 0, term);
     refresh();
     getch();
     unsigned short accu = 1; // skip first row, so row position is always positive
-    while (accu != ws.ws_row)
+    while (1)
     {
-        increment_vals(&term, &ws, accu);
+        if(accu == ws.ws_row){
+            accu = 1;
+        }
+        if((accu % 5) == 0){
+            test_populate_rows(&term, ws.ws_col);
+        }
+        test_increment_vals(&term, &ws, accu);
         mvprintw(0, 0, term);
-        accu++;
+        ++accu;
         getch();
     }
     
     endwin();
-    term[term_size] = '\0';
     free(term);
     return 0;
 }
