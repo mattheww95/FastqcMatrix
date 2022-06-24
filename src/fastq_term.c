@@ -169,7 +169,7 @@ void test_populate_rows(char** term_buffer, unsigned short row_length){
 }
 
 
-void test_increment_vals(char** term, const struct winsize* restrict ws_, const unsigned short row_val){
+void test_increment_vals(char** term, const struct winsize* restrict ws_, const unsigned long int row_val_){
     /*
         Function: test_increment_vals
         ------------------------
@@ -182,15 +182,16 @@ void test_increment_vals(char** term, const struct winsize* restrict ws_, const 
     */
 
     size_t term_size = TERM_SIZE(ws_->ws_col, ws_->ws_row);
-    for(size_t i = term_size; i != 0; i--){
+    unsigned short row_val = row_val_ % ws_->ws_row;
+
+    // Clear the bottome row out each time 
+    for(size_t g = ((ws_->ws_row * ws_->ws_col) - ws_->ws_col); g < term_size; g++){
+        (*term)[g] = FILL_CHAR;
+    }
+    for(size_t i = term_size; i != -1; i--){
         if((*term)[i] == 'X'){
             (*term)[i + ws_->ws_col] = 'X';
             (*term)[i] = FILL_CHAR; // bounds check not needed
-        }
-    }
-    if(row_val == (ws_->ws_row - 1)){
-        for(size_t i = ((row_val - 1) * ws_->ws_col); i < (TERM_SIZE(ws_->ws_row, ws_->ws_col)); i++){
-            (*term)[i] = FILL_CHAR;
         }
     }
 }
@@ -209,13 +210,10 @@ int main(){
     mvprintw(0, 0, term);
     refresh();
     getch();
-    unsigned short accu = 1; // skip first row, so row position is always positive
+    unsigned long int accu = 1; // skip first row, so row position is always positive
     while (1)
     {
-        if(accu == ws.ws_row){
-            accu = 1;
-        }
-        if((accu % 5) == 0){
+        if((accu % 2) == 0){
             test_populate_rows(&term, ws.ws_col);
         }
         test_increment_vals(&term, &ws, accu);
