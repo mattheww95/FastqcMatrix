@@ -4,35 +4,14 @@ messy. So I want to make fresh start and fix some of my mistakes
 
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
-
 // User defined headers
-#include <initialize_reads.h>
+#include "parser_fastq.h"
+#include "initialize_reads.h"
 
 
 #define LINE_SIZE 256 // max length of a sequence
 #define FASTQ_LOADS 1000 // how many entries to prepare
 
-typedef struct fastq_nucleotide{
-    char nucleotide;
-    char quality_value;
-    uint8_t color_pair;
-}fastq_nucleotide;
-
-typedef struct fastq_nucleotides{
-    fastq_nucleotide** data;
-    uint32_t counter;
-}fastq_nucleotides;
-
-//typedef struct fastq_line{
-//    char* header;
-//    char* sequence;
-//    char* quality_string;
-//    struct fastq_line* next;
-//}fastq_line;
 
 fastq_nucleotide* init_fastq_term(char* sequence_data, char* quality_data){
     /*

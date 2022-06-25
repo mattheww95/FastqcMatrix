@@ -76,7 +76,7 @@ Third Idea:
         struct term_col{
             uint8_t column_idx; // the column in which to populate the array
             fastq_nucleotides* nuc_chars; // The array carrying the characters
-            char* column; // The column to fill 
+            fastq_nucleotides* column; // The column to fill  this actualy needs to be a struct array to hold quality tag
         }
     
     Then the array of columns a can be moved through iteratively updating the columns and populating the screen buffer
@@ -99,10 +99,34 @@ Third Idea:
 #include <stdint.h>
 #include <ncurses.h>
 #include <string.h>
-
+#include "parse_fastq.h"
 
 #define TERM_SIZE(x, y) (x * y)
 #define FILL_CHAR ' '
+
+typedef struct terminal_col{
+    uint8_t column_idx; // to hold column position
+    fastq_nucleotides* nucleotide_characters; // array of quality data
+    fastq_nucleotide* column; // the column row to fill, will be length of rows available
+}terminal_col;
+
+terminal_col* terminal_fastq_data(struct winsize ws, uint32_t fq_nuc_counter){
+    /*
+        Function: terminal_fastq_data
+        -----------------------------
+        Create a set of structs to hold the data to be sent to the terminal for display 
+
+        winsize: The winsize struct holding terminal struct sizes
+        fq_nuc_counter: The counter passed from the fastq_nucleotides struct, can be used as a progress bar and to know when out of fastq's
+        return: A pointer to an array holding the struct terminal col
+    */
+
+   static uint32_t _FASTQ_COUNTER_ = fq_nuc_counter;
+   terminal_col* display_data = malloc(ws.ws_row * sizeof(*display_data));
+   return display_data;
+}
+
+
 
 struct winsize get_window_size(){
     /*
