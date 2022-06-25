@@ -69,8 +69,23 @@ Second Idea:
     row length till off the screen 
 
 Third Idea:
-    Fill the rows and spaces and increment all values up a level
+    Treat each column as an object, which holds the entirety of the fastq string. So the whole array can be populated and different values can be incremented
+    
+    So create an array of structs (kind of as suggested earlier), and initialize them with a char array the size of the row lengths. 
+    The struct can be defined as:
+        struct term_col{
+            uint8_t column_idx; // the column in which to populate the array
+            fastq_nucleotides* nuc_chars; // The array carrying the characters
+            char* column; // The column to fill 
+        }
+    
+    Then the array of columns a can be moved through iteratively updating the columns and populating the screen buffer
 
+    Functions needed:
+        1. One to create the structs for each terminal column
+        2. One to increment the character in the column array by one each time, then load a new nuc into the array.
+           clearing the final row each time.
+        3. One to randomly assign a sequence to a column
 
 2022-06-20: Matthew Wells
 */
@@ -225,7 +240,6 @@ int main(){
     free(term);
     return 0;
 }
-
 
 
 
