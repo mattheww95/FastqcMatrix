@@ -108,7 +108,10 @@ Third Idea:
 typedef struct terminal_col{
     uint8_t column_idx; // to hold column position
     fastq_nucleotides* nucleotide_characters; // array of quality data
+    uint32_t line_length;
     fastq_nucleotide* column; // the column row to fill, will be length of rows available
+    uint8_t cooldown; // Randomly assign a cool down to a struct to start displaying data
+    bool col_used; // If the column is empty or not
 }terminal_col;
 
 terminal_col* terminal_fastq_data(struct winsize ws, uint32_t fq_nuc_counter){
@@ -127,6 +130,14 @@ terminal_col* terminal_fastq_data(struct winsize ws, uint32_t fq_nuc_counter){
 
    static uint32_t _FASTQ_COUNTER_ = fq_nuc_counter;
    terminal_col* display_data = malloc(ws.ws_row * sizeof(*display_data));
+   for(size_t i = 0; i < ws.ws_row; i++){
+       display_data[i].column_idx = i;
+       display_data[i].column = NULL;
+       display_data[i].nucleotide_characters = NULL;
+       display_data[i].line_length = 0;
+       display_data[i].col_used = false;
+       
+   }
    return display_data;
 }
 
@@ -168,7 +179,13 @@ void load_fastq_terminal(terminal_col** terminal_data, fastq_nucleotides** fq_da
 
     uint8_t buffer_counter = ws.ws_row;
     while(buffer_counter != 0 && (*fq_data)->counter != 0){
-        memcpy((*terminal_data)->nucleotide_characters, (*fq_data)->data, LINE_SIZE);
+        // not sure if this is the correct way to add an additonal pointer to some memory
+        (*terminal_data)->nucleotide_characters = &(*fq_data)->data;
+        // magic number of 10 is just for testing cooldown
+        // In reality  it may be better to set rand max and have rand() % rand() 
+        // to make cooldown more random
+        (*terminal_data)->cooldown = rand() % 10;
+        (*terminal_data)->line_length = LINE_SIZE;
     }
 
 }
