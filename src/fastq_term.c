@@ -103,6 +103,7 @@ Third Idea:
 
 #define TERM_SIZE(x, y) (x * y)
 #define FILL_CHAR ' '
+#define LINE_SIZE 256 // may need to track row length in the structs
 
 typedef struct terminal_col{
     uint8_t column_idx; // to hold column position
@@ -144,6 +145,32 @@ void destroy_term_fq(terminal_col* terminal_fq_data, struct winsize ws){
        free(terminal_fq_data[i]->nucleotide_chracters);
        free(terminal_fq_data[i]);
    }
+}
+
+void load_fastq_terminal(terminal_col** terminal_data, fastq_nucleotides** fq_data, struct winsize ws){
+    /*
+        Function: load_fastq_terminal
+        -----------------------------
+        Initialize the terminal data with the initial set of data. Need to make sure
+        the array is not written past as well. 
+
+        Future Implementation Note:
+        ---------------------------
+        This needs to be called every cycle to reload the buffer, can make a check to
+        randomly assign values back to them if theyre not filled.
+
+        terminal_data: The columns to be displayed to the screen for the data
+        fq_data: The fastq data to be presented to the screen
+        ws: The win struct size
+        return: void
+     */
+
+
+    uint8_t buffer_counter = ws.ws_row;
+    while(buffer_counter != 0 && (*fq_data)->counter != 0){
+        memcpy((*terminal_data)->nucleotide_characters, (*fq_data)->data, LINE_SIZE);
+    }
+
 }
 
 
