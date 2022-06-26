@@ -112,7 +112,7 @@ window is resized while running it does not result in a segfault
 
 typedef struct terminal_col{
     uint8_t column_idx; // to hold column position
-    fastq_nucleotides* nucleotide_characters; // array of quality data
+    fastq_nucleotide* nucleotide_characters; // array of quality data
     uint32_t line_length;
     fastq_nucleotide* column; // the column row to fill, will be length of rows available
     uint8_t cooldown; // Randomly assign a cool down to a struct to start displaying data
@@ -157,9 +157,9 @@ void destroy_term_fq(terminal_col* terminal_fq_data, struct winsize ws){
         return: void 
     */
    for(size_t i = 0; i < ws.ws_row; i++){
-       free(terminal_fq_data[i]->column);
-       free(terminal_fq_data[i]->nucleotide_chracters);
-       free(terminal_fq_data[i]);
+       free(terminal_fq_data[i].column);
+       free(terminal_fq_data[i].nucleotide_characters);
+       free(&terminal_fq_data[i]);
    }
 }
 
@@ -187,13 +187,14 @@ void load_fastq_terminal(terminal_col** terminal_data, fastq_nucleotides** fq_da
         // need to beef up these gaurd conditions
         if(!(*terminal_data)->col_used){
             // not sure if this is the correct way to add an additonal pointer to some memory
-            (*terminal_data)->nucleotide_characters = &(*fq_data)->data;
+            (*terminal_data)->nucleotide_characters = (*fq_data)->data[(*fq_data)->counter];
             // magic number of 10 is just for testing cooldown
             // In reality  it may be better to set rand max and have rand() % rand() 
             // to make cooldown more random
             (*terminal_data)->cooldown = rand() % 10;
             (*terminal_data)->line_length = LINE_SIZE;
             (*terminal_data)->col_used = true;
+            (*fq_data)->counter--;
         }
     }
 
@@ -211,8 +212,8 @@ void progress_terminal(terminal_col** term_data, struct winsize ws){
     */
 
    for(size_t i = 0; i < ws.ws_col; i++){
-       terminal_col* t_data = &term_data[i];
-       // need to progress the data slowly in here.. somehow 
+       terminal_col* t_data = &(*term_data)[i];
+       // left off here
    }
 }
 
@@ -257,6 +258,8 @@ char* get_term_window(struct winsize window){
 
         return: char pointer to the buffer in the terminal 
     */
+
+   // get a warning from c++, not an issue in C
     char* term_window = malloc((window.ws_col * window.ws_row) * sizeof(*term_window));
     memset(term_window, FILL_CHAR, TERM_SIZE(window.ws_col, window.ws_row)); // upgrade to memset_s for safety checks
     return term_window;
@@ -296,14 +299,14 @@ void test_populate_rows(char** term_buffer, unsigned short row_length){
 }
 
 
-void test_increment_vals(char** term, const struct winsize* restrict ws_, const unsigned long int row_val_){
+void test_increment_vals(char** term, const struct winsize* ws_, const unsigned long int row_val_){
     /*
         Function: test_increment_vals
         ------------------------
         Increment the where the x is, moving it down the screen
 
         term: A pointer to the start of the array
-        ws_: the winsize struct holding the array bounds
+        ws_: the winsize struct holding the array bounds Note: had this as restrict but when liniting got a c++ error not an issue in the future
         row_val: which row to place the new information
         return: void 
     */
