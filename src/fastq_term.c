@@ -116,6 +116,9 @@ terminal_col* terminal_fastq_data(struct winsize ws, uint32_t fq_nuc_counter){
         -----------------------------
         Create a set of structs to hold the data to be sent to the terminal for display 
 
+        TODO: the terminal display data struct needs to be kept close by, so need to find out
+        if it can be statically allocated
+
         winsize: The winsize struct holding terminal struct sizes
         fq_nuc_counter: The counter passed from the fastq_nucleotides struct, can be used as a progress bar and to know when out of fastq's
         return: A pointer to an array holding the struct terminal col
@@ -126,13 +129,28 @@ terminal_col* terminal_fastq_data(struct winsize ws, uint32_t fq_nuc_counter){
    return display_data;
 }
 
+void destroy_term_fq(terminal_col* terminal_fq_data, struct winsize ws){
+    /*
+        Function: destroy_term_fq
+        -------------------------
+        Destroy the terminal_col struct  
+
+        terminal_fq_data: The columns in the terminal displaying data to the screen
+        ws: The window size struct to get row lengths
+        return: void 
+    */
+   for(size_t i = 0; i < ws.ws_row; i++){
+       free(terminal_fq_data[i]->column);
+       free(terminal_fq_data[i]->nucleotide_chracters);
+       free(terminal_fq_data[i]);
+   }
+}
 
 
 struct winsize get_window_size(){
     /*
         Function: get_windows_size
         --------------------------
-
         Return the winsize struct which contains the values required for determining the 
         terminals size.
 
