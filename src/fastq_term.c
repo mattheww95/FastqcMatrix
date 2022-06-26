@@ -87,6 +87,11 @@ Third Idea:
            clearing the final row each time.
         3. One to randomly assign a sequence to a column
 
+TODO: Need to make the windows size struct accessible everywhere, and constant so that if 
+window is resized while running it does not result in a segfault
+
+
+
 2022-06-20: Matthew Wells
 */
 
@@ -178,16 +183,37 @@ void load_fastq_terminal(terminal_col** terminal_data, fastq_nucleotides** fq_da
 
 
     uint8_t buffer_counter = ws.ws_row;
-    while(buffer_counter != 0 && (*fq_data)->counter != 0){
-        // not sure if this is the correct way to add an additonal pointer to some memory
-        (*terminal_data)->nucleotide_characters = &(*fq_data)->data;
-        // magic number of 10 is just for testing cooldown
-        // In reality  it may be better to set rand max and have rand() % rand() 
-        // to make cooldown more random
-        (*terminal_data)->cooldown = rand() % 10;
-        (*terminal_data)->line_length = LINE_SIZE;
+    while(buffer_counter != 1 && (*fq_data)->counter != 0){
+        // need to beef up these gaurd conditions
+        if(!(*terminal_data)->col_used){
+            // not sure if this is the correct way to add an additonal pointer to some memory
+            (*terminal_data)->nucleotide_characters = &(*fq_data)->data;
+            // magic number of 10 is just for testing cooldown
+            // In reality  it may be better to set rand max and have rand() % rand() 
+            // to make cooldown more random
+            (*terminal_data)->cooldown = rand() % 10;
+            (*terminal_data)->line_length = LINE_SIZE;
+            (*terminal_data)->col_used = true;
+        }
     }
 
+}
+
+void progress_terminal(terminal_col** term_data, struct winsize ws){
+    /*
+        Function: progress_terminal
+        ---------------------------
+        Progress characters in terminal buffer from the nucleotide array into  the column
+
+        term_data: Struct of terminal_col 
+        ws: The windows size struct for column length
+        return: void
+    */
+
+   for(size_t i = 0; i < ws.ws_col; i++){
+       terminal_col* t_data = &term_data[i];
+       // need to progress the data slowly in here.. somehow 
+   }
 }
 
 
