@@ -114,6 +114,7 @@ typedef struct terminal_col{
     uint8_t column_idx; // to hold column position
     fastq_nucleotide* nucleotide_characters; // array of quality data
     uint32_t line_length;
+    uint32_t line_idx;
     fastq_nucleotide* column; // the column row to fill, will be length of rows available
     uint8_t cooldown; // Randomly assign a cool down to a struct to start displaying data
     bool col_used; // If the column is empty or not
@@ -140,6 +141,7 @@ terminal_col* terminal_fastq_data(struct winsize ws, uint32_t fq_nuc_counter){
        display_data[i].column = NULL;
        display_data[i].nucleotide_characters = NULL;
        display_data[i].line_length = 0;
+       display_data[i].line_idx = 0;
        display_data[i].col_used = false;
        
    }
@@ -206,6 +208,17 @@ void progress_terminal(terminal_col** term_data, struct winsize ws){
         ---------------------------
         Progress characters in terminal buffer from the nucleotide array into  the column
 
+        Steps for what this function must do, as i need to plan this:
+            Step 1. Move through each of the terminal columns
+            Step 2. If the column is in use, advance the characters in the terminal
+                i. if it is not 0, add a character from the nuc chars into the column
+                ii. advance the characters in the column forward 1
+                iii. decrement the column counter
+                iv. Increment the line_idx value of the struct to get the next column
+                iv. If the column is empty and/or cooldown is 0 set the column usage to false
+            Step 3. If the usage is false load a new fastq seqeunce into the column
+
+
         term_data: Struct of terminal_col 
         ws: The windows size struct for column length
         return: void
@@ -214,6 +227,10 @@ void progress_terminal(terminal_col** term_data, struct winsize ws){
    for(size_t i = 0; i < ws.ws_col; i++){
        terminal_col* t_data = &(*term_data)[i];
        // left off here
+       if(t_data->col_used){ // check if there are characters in the column
+
+       }
+    
    }
 }
 
