@@ -5,7 +5,7 @@ messy. So I want to make fresh start and fix some of my mistakes
 */
 
 // User defined headers
-#include "parser_fastq.h"
+#include "parse_fastq.h"
 #include "initialize_reads.h"
 
 
@@ -31,6 +31,7 @@ fastq_nucleotide* init_fastq_term(char* sequence_data, char* quality_data){
 
    if(strlen(sequence_data) == 0){
        fprintf(stderr, "No seqeunce data\n");
+       fprintf(stderr, "Error: %s\n", strerror(errno));
        exit(-1);
    }
 
@@ -77,6 +78,7 @@ fastq_nucleotides* init_fastq_data(FILE* fastq_data){
     */
    if(fastq_data == NULL){
        fprintf(stderr, "Could not open file\n");
+       fprintf(stderr, "Error: %s\n", strerror(errno));
        exit(-1);
 
    }
@@ -141,6 +143,7 @@ void load_fastq(char* filename){
     fptr = fopen(filename, "r");
     if(fptr == NULL){
         fprintf(stderr, "Could not open fastq file at %s\n", filename);
+        fprintf(stderr, "Error: %s\n", strerror(errno));
         exit(-1);
     }
 

@@ -134,7 +134,8 @@ terminal_col* terminal_fastq_data(struct winsize ws, uint32_t fq_nuc_counter){
         return: A pointer to an array holding the struct terminal col
     */
 
-   static uint32_t _FASTQ_COUNTER_ = fq_nuc_counter;
+   static uint32_t _FASTQ_COUNTER_ = 0;
+   _FASTQ_COUNTER_ = fq_nuc_counter;
    terminal_col* display_data = malloc(ws.ws_row * sizeof(*display_data));
    for(size_t i = 0; i < ws.ws_row; i++){
        display_data[i].column_idx = i;
@@ -348,6 +349,7 @@ void test_increment_vals(char** term, const struct winsize* ws_, const unsigned 
 
 
 int main(){
+    load_fastq("data/art_test1.fq");
     struct winsize ws = get_window_size();
     size_t term_size = TERM_SIZE(ws.ws_col, ws.ws_row); // should make this static so does not always need to be recalculated
     char* term = get_term_window(ws);

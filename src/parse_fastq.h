@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-
+#include <errno.h>
 
 #ifndef _PARSE_FASTQ_
 #define _PARSE_FASTQ_
