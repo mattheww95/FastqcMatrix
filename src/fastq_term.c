@@ -184,8 +184,8 @@ void destroy_term_fq(terminal_col* terminal_fq_data, struct winsize ws){
    for(size_t i = 0; i < ws.ws_row; i++){
        free(terminal_fq_data[i].column);
        free(terminal_fq_data[i].nucleotide_characters);
-       free(&terminal_fq_data[i]);
    }
+   free(terminal_fq_data);
 }
 
 /**
@@ -413,9 +413,11 @@ void test_increment_vals(char** term, const struct winsize* ws_, const unsigned 
 
 
 int main(){
-    fastq_nucleotides* fq_data = load_fastq("data/art_test1.fq");
-    destroy_term_data(fq_data);
     struct winsize ws = get_window_size();
+    fastq_nucleotides* fq_data = load_fastq("data/art_test1.fq");
+    terminal_col* term_data = terminal_fastq_data(ws, fq_data->counter);
+    destroy_term_data(fq_data);
+    destroy_term_fq(term_data, ws);
     size_t term_size = TERM_SIZE(ws.ws_col, ws.ws_row); // should make this static so does not always need to be recalculated
     char* term = get_term_window(ws);
     test_populate_rows(&term, ws.ws_col); // passing col, as that is the number of rows
@@ -424,7 +426,9 @@ int main(){
     mvprintw(0, 0, term);
     refresh();
     unsigned long int accu = 1; // skip first row, so row position is always positive
-    while (1)
+    uint8_t test_uptoval = 255;
+    uint8_t t_val = 0;
+    while (t_val != test_uptoval)
     {
         if((accu % 2) == 0){
             test_populate_rows(&term, ws.ws_col);
@@ -433,6 +437,7 @@ int main(){
         mvprintw(0, 0, term);
         refresh();
         ++accu;
+        t_val++;
     }
     
     endwin();
