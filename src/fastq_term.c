@@ -110,6 +110,11 @@ window is resized while running it does not result in a segfault
 #define FILL_CHAR ' '
 #define LINE_SIZE 256 // may need to track row length in the structs
 
+
+/**
+ * @brief The terminal column data type
+ * 
+ */
 typedef struct terminal_col{
     uint8_t column_idx; // to hold column position
     fastq_nucleotide* nucleotide_characters; // array of quality data
@@ -119,6 +124,16 @@ typedef struct terminal_col{
     uint8_t cooldown; // Randomly assign a cool down to a struct to start displaying data
     bool col_used; // If the column is empty or not
 }terminal_col;
+
+/**
+ * @brief Create a set of structs to hold the data to be sent to the terminal display
+ *  
+ * TODO: The terminal display struct needs to be held close by, it may be better to statically allocat it 
+ * 
+ * @param ws The winsize struct holding the terminal struct sizes
+ * @param fq_nuc_counter  The counter passed from the fastq_nucleotides struct, can be used a s progress bar in the future 
+ * @return terminal_col* The initialized display data 
+ */
 
 terminal_col* terminal_fastq_data(struct winsize ws, uint32_t fq_nuc_counter){
     /*
@@ -149,6 +164,13 @@ terminal_col* terminal_fastq_data(struct winsize ws, uint32_t fq_nuc_counter){
    return display_data;
 }
 
+
+/**
+ * @brief Destroy the terminal_col struct 
+ * 
+ * @param terminal_fq_data The Columns in the terminal displaying the datat to the screen
+ * @param ws  The window size struct to get row lengths
+ */
 void destroy_term_fq(terminal_col* terminal_fq_data, struct winsize ws){
     /*
         Function: destroy_term_fq
@@ -166,6 +188,13 @@ void destroy_term_fq(terminal_col* terminal_fq_data, struct winsize ws){
    }
 }
 
+/**
+ * @brief Initialize the terminal data with the initial set of data. Need to add bounds check on the array
+ * 
+ * @param terminal_data The columns to be displayed to the screen for the data
+ * @param fq_data  The fastq data to be presented to the screen
+ * @param ws The win struct size
+ */
 void load_fastq_terminal(terminal_col** terminal_data, fastq_nucleotides** fq_data, struct winsize ws){
     /*
         Function: load_fastq_terminal
@@ -203,6 +232,13 @@ void load_fastq_terminal(terminal_col** terminal_data, fastq_nucleotides** fq_da
 
 }
 
+/**
+ * @brief  Progress the characters in the terminal from the nucleotide array into the column
+ * 
+ * @param term_data Struct of the terminal_col type 
+ * @param ws The window size struct for column length
+ */
+
 void progress_terminal(terminal_col** term_data, struct winsize ws){
     /*
         Function: progress_terminal
@@ -235,7 +271,11 @@ void progress_terminal(terminal_col** term_data, struct winsize ws){
    }
 }
 
-
+/**
+ * @brief Get the window size object
+ * 
+ * @return struct winsize 
+ */
 struct winsize get_window_size(){
     /*
         Function: get_windows_size
@@ -262,7 +302,12 @@ struct winsize get_window_size(){
     return ws;
 }
 
-
+/**
+ * @brief Get the term window object, create the terminal window for testing purposes
+ * 
+ * @param window A winsize struct to get the terminal bounds
+ * @return char* 
+ */
 char* get_term_window(struct winsize window){
     /*
     Need to figure out how to get attribute inline to work properly and toggle on or off
@@ -284,6 +329,12 @@ char* get_term_window(struct winsize window){
 }
 
 
+/**
+ * @brief Return some random position in the row to populate with a character
+ * 
+ * @param row_length The ws_row atrribute of the winsize struct
+ * @return uint32_t The value of the row to fill 
+ */
 uint32_t row_rand_position(unsigned short row_length){
     /*
         Function: row_rand_position
@@ -298,6 +349,12 @@ uint32_t row_rand_position(unsigned short row_length){
 }
 
 
+/**
+ * @brief  Put some random characters into the first row of the terminal buffer
+ * 
+ * @param term_buffer The array to be printed to the terminal 
+ * @param row_length The row length to be populated
+ */
 void test_populate_rows(char** term_buffer, unsigned short row_length){
     /*
         Function: test_populate_rows
@@ -317,6 +374,13 @@ void test_populate_rows(char** term_buffer, unsigned short row_length){
 }
 
 
+/**
+ * @brief Increment wherever an x is moving it down the screen
+ * 
+ * @param term A pointer to the start of the array 
+ * @param ws_ The winsize struct holding the array bounds.  
+ * @param row_val_ The row to place new information 
+ */
 void test_increment_vals(char** term, const struct winsize* ws_, const unsigned long int row_val_){
     /*
         Function: test_increment_vals
