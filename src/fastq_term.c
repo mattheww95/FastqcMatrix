@@ -349,7 +349,8 @@ void test_increment_vals(char** term, const struct winsize* ws_, const unsigned 
 
 
 int main(){
-    load_fastq("data/art_test1.fq");
+    fastq_nucleotides* fq_data = load_fastq("data/art_test1.fq");
+    destroy_term_data(fq_data);
     struct winsize ws = get_window_size();
     size_t term_size = TERM_SIZE(ws.ws_col, ws.ws_row); // should make this static so does not always need to be recalculated
     char* term = get_term_window(ws);

@@ -18,7 +18,7 @@ typedef struct fastq_nucleotides{
     uint32_t counter;
 }fastq_nucleotides;
 
-void load_fastq(char*);
+fastq_nucleotides* load_fastq(char*);
 
 fastq_nucleotide* init_fastq_term(char*, char*);
 void destroy_term_data(fastq_nucleotides*);

@@ -36,12 +36,10 @@ fastq_nucleotide* init_fastq_term(char* sequence_data, char* quality_data){
    }
 
     for(size_t i = 0; i < strlen(sequence_data); ++i){
-        terminal_data[i].quality_value = NULL; // trying to get rid of valgrin warning
-        terminal_data[i].nucleotide = NULL; // trying to get rid of valgrin warning
         terminal_data[i].color_pair = 4; // trying to get rid of valgrin warning
         terminal_data[i].nucleotide = sequence_data[i];
         terminal_data[i].quality_value = quality_data[i]; 
-        terminal_data[i].color_pair = color_pair_val(&terminal_data[i].quality_value);
+        terminal_data[i].color_pair = color_pair_val(terminal_data[i].quality_value);
     }
     return terminal_data;
 
@@ -127,7 +125,7 @@ fastq_nucleotides* init_fastq_data(FILE* fastq_data){
 }
 
 
-void load_fastq(char* filename){
+fastq_nucleotides* load_fastq(char* filename){
 /*
     Function: load_fastq
     --------------------
@@ -148,11 +146,10 @@ void load_fastq(char* filename){
     }
 
     fastq_nucleotides* term_data = init_fastq_data(fptr);
-    destroy_term_data(term_data);
 
 
 }
 
-int main(int argc, char** argv){
-    if(argc == 2) load_fastq(argv[1]);
-}
+//int main(int argc, char** argv){
+//    if(argc == 2) load_fastq(argv[1]);
+//}
