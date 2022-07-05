@@ -197,6 +197,9 @@ void destroy_term_fq(terminal_col* terminal_fq_data, struct winsize ws){
  */
 void load_fastq_terminal(terminal_col** terminal_data, fastq_nucleotides** fq_data, struct winsize ws){
     /*
+        TODO: Realized this is not initialting the structs properly e.g. not initializing all of them
+
+
         Function: load_fastq_terminal
         -----------------------------
         Initialize the terminal data with the initial set of data. Need to make sure
@@ -219,6 +222,7 @@ void load_fastq_terminal(terminal_col** terminal_data, fastq_nucleotides** fq_da
         // need to beef up these gaurd conditions
         if(!(*terminal_data)->col_used){
             // not sure if this is the correct way to add an additonal pointer to some memory
+            //memcpy((*terminal_data)->nucleotide_characters, (*fq_data)[(*fq_data)->counter], sizeof((*terminal_data)->nucleotide_characters));
             (*terminal_data)->nucleotide_characters = (*fq_data)->data[(*fq_data)->counter];
             // magic number of 10 is just for testing cooldown
             // In reality  it may be better to set rand max and have rand() % rand() 
@@ -228,6 +232,7 @@ void load_fastq_terminal(terminal_col** terminal_data, fastq_nucleotides** fq_da
             (*terminal_data)->col_used = true;
             (*fq_data)->counter--;
         }
+        buffer_counter--;
     }
 
 }
@@ -416,6 +421,10 @@ int main(){
     struct winsize ws = get_window_size();
     fastq_nucleotides* fq_data = load_fastq("data/art_test1.fq");
     terminal_col* term_data = terminal_fastq_data(ws, fq_data->counter);
+    load_fastq_terminal(&term_data, &fq_data, ws);
+    for(size_t i = 0; i < ws.ws_col; i++){
+        printf("%d\n", term_data[i].line_length);
+    }
     destroy_term_data(fq_data);
     destroy_term_fq(term_data, ws);
     size_t term_size = TERM_SIZE(ws.ws_col, ws.ws_row); // should make this static so does not always need to be recalculated

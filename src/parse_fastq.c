@@ -103,8 +103,8 @@ fastq_nucleotides* init_fastq_data(FILE* fastq_data){
            sequence_next = 1;
        }else if(sequence_next == 1){
            strcpy(quality_sequence, line);
-           printf("Sequence: %s\n", sequence);
-           printf("Quality Sequence: %s\n", quality_sequence);
+           //printf("Sequence: %s\n", sequence);
+           //printf("Quality Sequence: %s\n", quality_sequence);
            if(strlen(quality_sequence) == strlen(sequence)){
                term_data->data[term_data->counter] = init_fastq_term(sequence, quality_sequence);
                term_data->counter++;
