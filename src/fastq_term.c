@@ -115,7 +115,7 @@ window is resized while running it does not result in a segfault
  * 
  */
 typedef struct terminal_col{
-    uint8_t column_idx; // to hold column position
+    size_t column_idx; // to hold column position
     fastq_nucleotide* nucleotide_characters; // array of quality data
     uint32_t line_length;
     uint32_t line_idx;
@@ -139,8 +139,8 @@ terminal_col* terminal_fastq_data(struct winsize ws, uint32_t fq_nuc_counter){
    static uint32_t _FASTQ_COUNTER_ = 0;
    _FASTQ_COUNTER_ = fq_nuc_counter;
    terminal_col* display_data = malloc(ws.ws_col * sizeof(*display_data));
-   for(size_t i = 0; i < ws.ws_row; i++){
-       display_data[i].column_idx = (uint8_t)i;
+   for(size_t i = 0; i < ws.ws_col; i++){
+       display_data[i].column_idx = i;
        display_data[i].column = NULL;
        display_data[i].nucleotide_characters = NULL;
        display_data[i].line_length = 0;
@@ -159,15 +159,6 @@ terminal_col* terminal_fastq_data(struct winsize ws, uint32_t fq_nuc_counter){
  * @param ws  The window size struct to get row lengths
  */
 void destroy_term_fq(terminal_col* terminal_fq_data, struct winsize ws){
-    /*
-        Function: destroy_term_fq
-        -------------------------
-        Destroy the terminal_col struct  
-
-        terminal_fq_data: The columns in the terminal displaying data to the screen
-        ws: The window size struct to get row lengths
-        return: void 
-    */
    for(size_t i = 0; i < ws.ws_row; i++){
        free(terminal_fq_data[i].column);
        free(terminal_fq_data[i].nucleotide_characters);
@@ -194,13 +185,14 @@ void load_fastq_terminal(terminal_col** terminal_data, fastq_nucleotides** fq_da
 
     int16_t buffer_counter = ws.ws_col - 1;
     // TODO: Need to watch the fq_data counter differently
-//    while(buffer_counter != -1){
-    while(buffer_counter != 0 && (*fq_data)->counter != 0){
+    //    while(buffer_counter != -1){
+    int16_t fq_cntr = (int16_t)(*fq_data)->counter--; // TODO temporary fix for amound of fastas being called
+    while(buffer_counter != 0 && fq_cntr != 0){
         // need to beef up these gaurd conditions
         //(*terminal_data)[buffer_counter].line_length = LINE_SIZE;
        if(!(*terminal_data)[buffer_counter].col_used){
            // not sure if this is the correct way to add an additonal pointer to some memory
-           //memcpy((*terminal_data)[buffer_counter].nucleotide_characters, (*fq_data)[(*fq_data)->counter], sizeof((*terminal_data)->nucleotide_characters));
+           //memcpy((*terminal_data)[buffer_counter].nucleotide_characters, (*fq_data)->data[(*fq_data)->counter], sizeof((*terminal_data)->nucleotide_characters));
            (*terminal_data)[buffer_counter].nucleotide_characters = (*fq_data)->data[(*fq_data)->counter];
            // magic number of 10 is just for testing cooldown
            // In reality  it may be better to set rand max and have rand() % rand() 
@@ -208,7 +200,9 @@ void load_fastq_terminal(terminal_col** terminal_data, fastq_nucleotides** fq_da
            (*terminal_data)[buffer_counter].cooldown = rand() % 10;
            (*terminal_data)[buffer_counter].line_length = LINE_SIZE;
            (*terminal_data)[buffer_counter].col_used = true;
+           //free((*fq_data)->data[(*fq_data)->counter]);
            (*fq_data)->counter--;
+           fq_cntr--;
        }
         buffer_counter--;
     }
@@ -240,10 +234,11 @@ void progress_terminal(terminal_col** term_data, struct winsize ws){
        terminal_col* t_data = &(*term_data)[i];
        // left off here
        if(t_data->col_used){ // check if there are characters in the column
-
+            printf("NucChar: %c\n", t_data->nucleotide_characters[0].nucleotide);
        }
     
    }
+   printf("Window size %d\n", ws.ws_col);
 }
 
 /**
@@ -282,7 +277,6 @@ char* get_term_window(struct winsize window){
     return term_window;
 }
 
-
 /**
  * @brief Return some random position in the row to populate with a character
  * 
@@ -302,7 +296,7 @@ uint32_t row_rand_position(unsigned short row_length){
  * @param row_length The row length to be populated
  */
 void test_populate_rows(char** term_buffer, unsigned short row_length){
-   uint32_t number_rows_fill = row_length * 0.1; // populate 50% of the columns with chars
+   uint32_t number_rows_fill = row_length * 0.1; // populate 10% of the columns with chars
    for(size_t i = 0; i < number_rows_fill; i++){
        uint32_t val = row_rand_position(row_length);
        (*term_buffer)[val] = 'X'; // fill the buffer with some arbitrary value
@@ -336,17 +330,12 @@ void test_increment_vals(char** term, const struct winsize* ws_, const unsigned 
 }
 
 
-
-
-
 int main(){
     struct winsize ws = get_window_size();
     fastq_nucleotides* fq_data = load_fastq("data/art_test1.fq");
     terminal_col* term_data = terminal_fastq_data(ws, fq_data->counter);
     load_fastq_terminal(&term_data, &fq_data, ws);
-    for(size_t i = 0; i < ws.ws_col; i++){
-        printf("%d\n", term_data[i].line_length);
-    }
+    progress_terminal(&term_data, ws); 
     destroy_term_data(fq_data);
     destroy_term_fq(term_data, ws);
     /*
