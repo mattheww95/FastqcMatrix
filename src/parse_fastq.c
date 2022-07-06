@@ -146,6 +146,7 @@ fastq_nucleotides* load_fastq(char* filename){
     }
 
     fastq_nucleotides* term_data = init_fastq_data(fptr);
+    return term_data;
 
 
 }

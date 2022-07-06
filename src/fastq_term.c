@@ -194,22 +194,22 @@ void load_fastq_terminal(terminal_col** terminal_data, fastq_nucleotides** fq_da
 
     int16_t buffer_counter = ws.ws_col - 1;
     // TODO: Need to watch the fq_data counter differently
-    while(buffer_counter != -1){
-    //while(buffer_counter != 0 || (*fq_data)->counter != 0){
+//    while(buffer_counter != -1){
+    while(buffer_counter != 0 && (*fq_data)->counter != 0){
         // need to beef up these gaurd conditions
-        (*terminal_data)[buffer_counter].line_length = LINE_SIZE;
-       // if(!(*terminal_data)->col_used){
-       //     // not sure if this is the correct way to add an additonal pointer to some memory
-       //     //memcpy((*terminal_data)->nucleotide_characters, (*fq_data)[(*fq_data)->counter], sizeof((*terminal_data)->nucleotide_characters));
-       //     (*terminal_data)->nucleotide_characters = (*fq_data)->data[(*fq_data)->counter];
-       //     // magic number of 10 is just for testing cooldown
-       //     // In reality  it may be better to set rand max and have rand() % rand() 
-       //     // to make cooldown more random
-       //     (*terminal_data)->cooldown = rand() % 10;
-       //     (*terminal_data)->line_length = LINE_SIZE;
-       //     (*terminal_data)->col_used = true;
-       //     (*fq_data)->counter--;
-       // }
+        //(*terminal_data)[buffer_counter].line_length = LINE_SIZE;
+       if(!(*terminal_data)[buffer_counter].col_used){
+           // not sure if this is the correct way to add an additonal pointer to some memory
+           //memcpy((*terminal_data)[buffer_counter].nucleotide_characters, (*fq_data)[(*fq_data)->counter], sizeof((*terminal_data)->nucleotide_characters));
+           (*terminal_data)[buffer_counter].nucleotide_characters = (*fq_data)->data[(*fq_data)->counter];
+           // magic number of 10 is just for testing cooldown
+           // In reality  it may be better to set rand max and have rand() % rand() 
+           // to make cooldown more random
+           (*terminal_data)[buffer_counter].cooldown = rand() % 10;
+           (*terminal_data)[buffer_counter].line_length = LINE_SIZE;
+           (*terminal_data)[buffer_counter].col_used = true;
+           (*fq_data)->counter--;
+       }
         buffer_counter--;
     }
 
@@ -224,9 +224,6 @@ void load_fastq_terminal(terminal_col** terminal_data, fastq_nucleotides** fq_da
 
 void progress_terminal(terminal_col** term_data, struct winsize ws){
     /*
-        Function: progress_terminal
-        ---------------------------
-        Progress characters in terminal buffer from the nucleotide array into  the column
 
         Steps for what this function must do, as i need to plan this:
             Step 1. Move through each of the terminal columns
@@ -237,11 +234,6 @@ void progress_terminal(terminal_col** term_data, struct winsize ws){
                 iv. Increment the line_idx value of the struct to get the next column
                 iv. If the column is empty and/or cooldown is 0 set the column usage to false
             Step 3. If the usage is false load a new fastq seqeunce into the column
-
-
-        term_data: Struct of terminal_col 
-        ws: The windows size struct for column length
-        return: void
     */
 
    for(size_t i = 0; i < ws.ws_col; i++){
@@ -260,15 +252,6 @@ void progress_terminal(terminal_col** term_data, struct winsize ws){
  * @return struct winsize 
  */
 struct winsize get_window_size(){
-    /*
-        Function: get_windows_size
-        --------------------------
-        Return the winsize struct which contains the values required for determining the 
-        terminals size.
-
-        return: struct winsize 
-    
-    */
     struct winsize ws; //winsize holds two unsigned shorts, according to termios.h
     int fd;
     fd = open("/dev/tty", O_RDWR);
@@ -289,21 +272,9 @@ struct winsize get_window_size(){
  * @brief Get the term window object, create the terminal window for testing purposes
  * 
  * @param window A winsize struct to get the terminal bounds
- * @return char* 
+ * @return char* To the terminal window buffer
  */
 char* get_term_window(struct winsize window){
-    /*
-    Need to figure out how to get attribute inline to work properly and toggle on or off
-
-        Function: get_term_window
-        -------------------------
-
-        Create the terminal window buffer and set the memory to one static value for test purposes
-
-        window: A winsize struct to get termninal bounds
-
-        return: char pointer to the buffer in the terminal 
-    */
 
    // get a warning from c++, not an issue in C
     char* term_window = malloc((window.ws_col * window.ws_row) * sizeof(*term_window));
@@ -319,14 +290,6 @@ char* get_term_window(struct winsize window){
  * @return uint32_t The value of the row to fill 
  */
 uint32_t row_rand_position(unsigned short row_length){
-    /*
-        Function: row_rand_position
-        ---------------------------
-        Return some random position in the row to populate with a character.
-        
-        row_length: The struct winsize ws_row attribute
-        return: Row position 
-    */
    uint32_t r = rand() % row_length;
    return r;
 }
@@ -339,15 +302,6 @@ uint32_t row_rand_position(unsigned short row_length){
  * @param row_length The row length to be populated
  */
 void test_populate_rows(char** term_buffer, unsigned short row_length){
-    /*
-        Function: test_populate_rows
-        -----------------------
-        Put some random characters into the first row of the terminal buffer
-
-        term_buffer: The array to be printed to the terminal
-        row_length: The row lenght to be populated
-        return: nothing
-    */
    uint32_t number_rows_fill = row_length * 0.1; // populate 50% of the columns with chars
    for(size_t i = 0; i < number_rows_fill; i++){
        uint32_t val = row_rand_position(row_length);
@@ -365,16 +319,6 @@ void test_populate_rows(char** term_buffer, unsigned short row_length){
  * @param row_val_ The row to place new information 
  */
 void test_increment_vals(char** term, const struct winsize* ws_, const unsigned long int row_val_){
-    /*
-        Function: test_increment_vals
-        ------------------------
-        Increment the where the x is, moving it down the screen
-
-        term: A pointer to the start of the array
-        ws_: the winsize struct holding the array bounds Note: had this as restrict but when liniting got a c++ error not an issue in the future
-        row_val: which row to place the new information
-        return: void 
-    */
 
     size_t term_size = TERM_SIZE(ws_->ws_col, ws_->ws_row);
     unsigned short row_val = row_val_ % ws_->ws_row;
