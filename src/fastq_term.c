@@ -110,7 +110,6 @@ window is resized while running it does not result in a segfault
 #define FILL_CHAR ' '
 #define LINE_SIZE 256 // may need to track row length in the structs
 
-
 /**
  * @brief The terminal column data type
  * 
@@ -136,24 +135,12 @@ typedef struct terminal_col{
  */
 
 terminal_col* terminal_fastq_data(struct winsize ws, uint32_t fq_nuc_counter){
-    /*
-        Function: terminal_fastq_data
-        -----------------------------
-        Create a set of structs to hold the data to be sent to the terminal for display 
-
-        TODO: the terminal display data struct needs to be kept close by, so need to find out
-        if it can be statically allocated
-
-        winsize: The winsize struct holding terminal struct sizes
-        fq_nuc_counter: The counter passed from the fastq_nucleotides struct, can be used as a progress bar and to know when out of fastq's
-        return: A pointer to an array holding the struct terminal col
-    */
 
    static uint32_t _FASTQ_COUNTER_ = 0;
    _FASTQ_COUNTER_ = fq_nuc_counter;
-   terminal_col* display_data = malloc(ws.ws_row * sizeof(*display_data));
+   terminal_col* display_data = malloc(ws.ws_col * sizeof(*display_data));
    for(size_t i = 0; i < ws.ws_row; i++){
-       display_data[i].column_idx = i;
+       display_data[i].column_idx = (uint8_t)i;
        display_data[i].column = NULL;
        display_data[i].nucleotide_characters = NULL;
        display_data[i].line_length = 0;
@@ -198,40 +185,31 @@ void destroy_term_fq(terminal_col* terminal_fq_data, struct winsize ws){
 void load_fastq_terminal(terminal_col** terminal_data, fastq_nucleotides** fq_data, struct winsize ws){
     /*
         TODO: Realized this is not initialting the structs properly e.g. not initializing all of them
-
-
-        Function: load_fastq_terminal
-        -----------------------------
-        Initialize the terminal data with the initial set of data. Need to make sure
-        the array is not written past as well. 
-
         Future Implementation Note:
         ---------------------------
         This needs to be called every cycle to reload the buffer, can make a check to
         randomly assign values back to them if theyre not filled.
-
-        terminal_data: The columns to be displayed to the screen for the data
-        fq_data: The fastq data to be presented to the screen
-        ws: The win struct size
-        return: void
      */
 
 
-    uint8_t buffer_counter = ws.ws_row;
-    while(buffer_counter != 1 && (*fq_data)->counter != 0){
+    int16_t buffer_counter = ws.ws_col - 1;
+    // TODO: Need to watch the fq_data counter differently
+    while(buffer_counter != -1){
+    //while(buffer_counter != 0 || (*fq_data)->counter != 0){
         // need to beef up these gaurd conditions
-        if(!(*terminal_data)->col_used){
-            // not sure if this is the correct way to add an additonal pointer to some memory
-            //memcpy((*terminal_data)->nucleotide_characters, (*fq_data)[(*fq_data)->counter], sizeof((*terminal_data)->nucleotide_characters));
-            (*terminal_data)->nucleotide_characters = (*fq_data)->data[(*fq_data)->counter];
-            // magic number of 10 is just for testing cooldown
-            // In reality  it may be better to set rand max and have rand() % rand() 
-            // to make cooldown more random
-            (*terminal_data)->cooldown = rand() % 10;
-            (*terminal_data)->line_length = LINE_SIZE;
-            (*terminal_data)->col_used = true;
-            (*fq_data)->counter--;
-        }
+        (*terminal_data)[buffer_counter].line_length = LINE_SIZE;
+       // if(!(*terminal_data)->col_used){
+       //     // not sure if this is the correct way to add an additonal pointer to some memory
+       //     //memcpy((*terminal_data)->nucleotide_characters, (*fq_data)[(*fq_data)->counter], sizeof((*terminal_data)->nucleotide_characters));
+       //     (*terminal_data)->nucleotide_characters = (*fq_data)->data[(*fq_data)->counter];
+       //     // magic number of 10 is just for testing cooldown
+       //     // In reality  it may be better to set rand max and have rand() % rand() 
+       //     // to make cooldown more random
+       //     (*terminal_data)->cooldown = rand() % 10;
+       //     (*terminal_data)->line_length = LINE_SIZE;
+       //     (*terminal_data)->col_used = true;
+       //     (*fq_data)->counter--;
+       // }
         buffer_counter--;
     }
 
@@ -427,6 +405,7 @@ int main(){
     }
     destroy_term_data(fq_data);
     destroy_term_fq(term_data, ws);
+    /*
     size_t term_size = TERM_SIZE(ws.ws_col, ws.ws_row); // should make this static so does not always need to be recalculated
     char* term = get_term_window(ws);
     test_populate_rows(&term, ws.ws_col); // passing col, as that is the number of rows
@@ -451,6 +430,7 @@ int main(){
     
     endwin();
     free(term);
+    */
     return 0;
 }
 
