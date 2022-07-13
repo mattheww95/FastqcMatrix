@@ -338,6 +338,7 @@ int main(){
     progress_terminal(&term_data, ws); 
     destroy_term_data(fq_data);
     destroy_term_fq(term_data, ws);
+    free(fq_data);
     /*
     size_t term_size = TERM_SIZE(ws.ws_col, ws.ws_row); // should make this static so does not always need to be recalculated
     char* term = get_term_window(ws);

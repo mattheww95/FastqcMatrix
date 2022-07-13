@@ -56,12 +56,12 @@ void destroy_term_data(fastq_nucleotides* data_remove){
         return: void
     */
 
-   for(size_t i = 0; i < data_remove->counter - 1; ++i){
+   for(size_t i = 0; i < data_remove->counter_copy; i++){
        fprintf(stderr, "Removing: %c\t", data_remove->data[i]->nucleotide);
        free(data_remove->data[i]);
        fprintf(stderr, "Removed data\n");
    }
-  // free(data_remove->data);
+   free(data_remove->data);
    //free(data_remove);
    //fprintf(stderr, "Finished destroying terminal data");
 }
@@ -122,6 +122,7 @@ fastq_nucleotides* init_fastq_data(FILE* fastq_data){
    }
    //destroy_term_data(term_data);
    fclose(fastq_data);
+   term_data->counter_copy = term_data->counter;
    return term_data;
 
 }
