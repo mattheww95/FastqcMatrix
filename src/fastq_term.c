@@ -103,7 +103,6 @@ sizzed array of nucleotide chars and can read that to screen repeatadly
 
 
 
-
 2022-06-20: Matthew Wells
 */
 
@@ -120,6 +119,8 @@ sizzed array of nucleotide chars and can read that to screen repeatadly
 
 #define TERM_SIZE(x, y) (x * y)
 #define FILL_CHAR ' '
+#define TERM_FILL_CHAR                                                         \
+  fastq_nucleotide a = {.nucleotide = ' ', quality_value = ' ', color_pair = 0};
 #define LINE_SIZE 256 // may need to track row length in the structs
 
 /**
@@ -130,9 +131,12 @@ typedef struct terminal_col {
   size_t column_idx;                       // to hold column position
   fastq_nucleotide *nucleotide_characters; // array of quality data
   uint32_t line_length;
+  uint_fast32_t array_pos; // Position within the nucleotide array to move to
+                           // the buffer screen
   uint32_t line_idx;
-  fastq_nucleotide
-      *column;      // the column row to fill, will be length of rows available
+  // fastq_nucleotide
+  //     *column;      // the column row to fill, will be length of rows
+  //     available
   uint8_t cooldown; // Randomly assign a cool down to a struct to start
                     // displaying data
   bool col_used;    // If the column is empty or not
@@ -158,7 +162,8 @@ terminal_col *terminal_fastq_data(struct winsize ws, uint32_t fq_nuc_counter) {
   terminal_col *display_data = malloc(ws.ws_col * sizeof(*display_data));
   for (size_t i = 0; i < ws.ws_col; i++) {
     display_data[i].column_idx = i;
-    display_data[i].column = NULL;
+    // display_data[i].column = NULL;
+    display_data[i].array_pos = 0;
     display_data[i].nucleotide_characters = NULL;
     display_data[i].line_length = 0;
     display_data[i].line_idx = 0;
@@ -176,7 +181,7 @@ terminal_col *terminal_fastq_data(struct winsize ws, uint32_t fq_nuc_counter) {
  */
 void destroy_term_fq(terminal_col *terminal_fq_data, struct winsize ws) {
   for (size_t i = 0; i < ws.ws_row; i++) {
-    free(terminal_fq_data[i].column);
+    // free(terminal_fq_data[i].column);
     free(terminal_fq_data[i].nucleotide_characters);
   }
   free(terminal_fq_data);
@@ -232,14 +237,27 @@ void load_fastq_terminal(terminal_col **terminal_data,
 }
 
 /**
+ *@brief Increment all characters in the terminal forward except
+ *
+ *@param window The display array of values to be incremented
+ *@param ws Struct of winsize parameter
+ * */
+void increment_terminal(fastq_nucleotide **window, struct winsize ws) {
+  // Need to increment the data forward while making sure not to move past
+  // the end of the array or overwrite data
+}
+
+/**
  * @brief  Progress the characters in the terminal from the nucleotide array
  * into the column
  *
  * @param term_data Struct of the terminal_col type
  * @param ws The window size struct for column length
+ * @param window The window array holding fastq nucleotide structs
  */
 
-void progress_terminal(terminal_col **term_data, struct winsize ws) {
+void progress_terminal(terminal_col **term_data, struct winsize ws,
+                       fastq_nucleotide **window) {
   /*
 
       Steps for what this function must do, as i need to plan this:
@@ -253,12 +271,22 @@ void progress_terminal(terminal_col **term_data, struct winsize ws) {
      seqeunce into the column
   */
 
+  // TODO: Need to increment all arrays here first
+
   for (size_t i = 0; i < ws.ws_col; i++) {
     terminal_col *t_data = &(*term_data)[i];
     // left off here
     if (t_data->col_used) { // check if there are characters in the column
       printf("NucChar in array: %c\n",
-             t_data->nucleotide_characters[0].nucleotide);
+             t_data->nucleotide_characters[t_data->array_pos].nucleotide);
+
+      // add a new nucleotided to the array window to display
+      (*window)[t_data->column_idx] =
+          t_data->nucleotide_characters[t_data->array_pos];
+
+      if (t_data->line_length < t_data->array_pos) {
+        t_data->array_pos++;
+      }
     }
   }
   printf("Window size %d\n", ws.ws_col);
@@ -294,14 +322,18 @@ struct winsize get_window_size() {
  * @param window A winsize struct to get the terminal bounds
  * @return char* To the terminal window buffer
  */
-char *get_term_window(struct winsize window) {
+fastq_nucleotide *get_term_window(struct winsize window) {
 
   // get a warning from c++, not an issue in C
-  char *term_window =
-      malloc((window.ws_col * window.ws_row) * sizeof(*term_window));
+  // char *term_window =
+  //    malloc((window.ws_col * window.ws_row) * sizeof(*term_window));
+  fastq_nucleotide *term_window =
+      malloc(TERM_SIZE(window.ws_col, window.ws_row) * sizeof(*term_window));
+
   memset(term_window, FILL_CHAR,
          TERM_SIZE(window.ws_col,
-                   window.ws_row)); // upgrade to memset_s for safety checks
+                   window.ws_row)); // upgrade to memset_s for safety checks and
+                                    // fill char needs to be changed
   return term_window;
 }
 
@@ -361,11 +393,13 @@ int main() {
   struct winsize ws = get_window_size();
   fastq_nucleotides *fq_data = load_fastq("data/art_test1.fq");
   terminal_col *term_data = terminal_fastq_data(ws, fq_data->counter);
+  fastq_nucleotide *window = get_term_window(ws);
   load_fastq_terminal(&term_data, &fq_data, ws);
-  progress_terminal(&term_data, ws);
+  progress_terminal(&term_data, ws, &window);
   destroy_term_data(fq_data);
   destroy_term_fq(term_data, ws);
   free(fq_data);
+  free(window);
   /*
   size_t term_size = TERM_SIZE(ws.ws_col, ws.ws_row); // should make this static
   so does not always need to be recalculated char* term = get_term_window(ws);
