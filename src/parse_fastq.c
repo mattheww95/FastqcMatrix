@@ -11,6 +11,14 @@ messy. So I want to make fresh start and fix some of my mistakes
 #define LINE_SIZE 256    // max length of a sequence
 #define FASTQ_LOADS 1000 // how many entries to prepare
 
+/**
+ *@brief Take in the sequence and quality string, and return a pointer to an
+ *array of fastq nucleotide structs
+ *
+ *@param sequence_data The sequence data to input to the fastq_function
+ *@param quality_data: The quality string to prepare the nucleotides
+ *@return A pointer to the start of the fastq array
+ **/
 fastq_nucleotide *init_fastq_term(char *sequence_data, char *quality_data) {
   /*
       Function: init_fastq_term
@@ -45,16 +53,12 @@ fastq_nucleotide *init_fastq_term(char *sequence_data, char *quality_data) {
   return terminal_data;
 }
 
+/**
+ *@brief Free the memory in the double pointer struct fastq_nucleotides
+ *
+ *@param data_remove The data pointed to and to be removed
+ * */
 void destroy_term_data(fastq_nucleotides *data_remove) {
-  /*
-      Function: destroy_term_data
-      ---------------------------
-      Free the memory in the double pointer struct fastq_nucleotides
-
-      data_remove: The data to remove
-
-      return: void
-  */
 
   for (size_t i = 0; i < data_remove->counter_copy; i++) {
     fprintf(stderr, "Removing: %c\t", data_remove->data[i]->nucleotide);
@@ -125,18 +129,14 @@ fastq_nucleotides *init_fastq_data(FILE *fastq_data) {
   return term_data;
 }
 
+/**
+ *@brief The function to load the fastq file, and handle the file pointer to
+ *make the initial pointer fastq structure
+ *
+ *filename: The file name of the fastq file to be read
+ */
 fastq_nucleotides *load_fastq(char *filename) {
-  /*
-      Function: load_fastq
-      --------------------
 
-      The function to load the fastq file, handle the file pointer and
-      create the initial fastq structure
-
-      filename: The file name of the fastq file to be read in
-
-      return: void
-  */
   FILE *fptr;
   fptr = fopen(filename, "r");
   if (fptr == NULL) {
