@@ -257,11 +257,12 @@ void increment_terminal(fastq_nucleotide **window, struct winsize ws) {
  *@param ws Winsize struct
  *
  * */
-void display_nucleotides(fastq_nucleotide **window, struct winsize ws) {
+void display_nucleotides(fastq_nucleotide *window, struct winsize ws) {
 
-  for (size_t i = 0; i < TERM_SIZE(ws.ws_col, ws.ws_row); i++) {
-    printf("%c", window[i]->nucleotide);
+  for (size_t i = 0; i < TERM_SIZE(ws.ws_col, ws.ws_row) - 1; i++) {
+    printf("%c", window[i].nucleotide);
   }
+  printf("\n");
 }
 
 /**
@@ -306,7 +307,7 @@ void progress_terminal(terminal_col **term_data, struct winsize ws,
     }
   }
   printf("Window size %d\n", TERM_SIZE(ws.ws_col, ws.ws_row));
-  display_nucleotides(window, ws);
+  display_nucleotides(*window, ws);
 }
 
 /**
