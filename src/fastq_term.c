@@ -132,8 +132,8 @@ typedef struct terminal_col {
   size_t column_idx;                       // to hold column position
   fastq_nucleotide *nucleotide_characters; // array of quality data
   uint32_t line_length;
-  uint_fast32_t array_pos; // Position within the nucleotide array to move to
-                           // the buffer screen
+  uint32_t array_pos; // Position within the nucleotide array to move to
+                      // the buffer screen
   uint32_t line_idx;
   // fastq_nucleotide
   //     *column;      // the column row to fill, will be length of rows
@@ -234,17 +234,17 @@ void load_fastq_terminal(terminal_col **terminal_data,
  *@param window The display array of values to be incremented
  *@param ws Struct of winsize parameter
  * */
-void increment_terminal(fastq_nucleotide **window, struct winsize ws) {
+void increment_terminal(fastq_nucleotide *window, struct winsize ws) {
   // Need to increment the data forward while making sure not to move past
   // the end of the array or overwrite data
 
   size_t window_size = TERM_SIZE(ws.ws_col, ws.ws_row);
 
-  for (size_t i = (ws.ws_col * ws.ws_row) - ws.ws_col; i < window_size; --i) {
-    (*window)[i].nucleotide = EMPTY.nucleotide;
+  for (size_t i = (ws.ws_col * ws.ws_row) - ws.ws_col; i < window_size; ++i) {
+    window[i].nucleotide = EMPTY.nucleotide;
   }
   for (size_t f = window_size - 1; f != 0; --f) {
-    if ((*window)[f].nucleotide != EMPTY.nucleotide) {
+    if (window[f].nucleotide != EMPTY.nucleotide) {
       window[f + ws.ws_col] = window[f];
     }
   }
@@ -289,7 +289,7 @@ void progress_terminal(terminal_col **term_data, struct winsize ws,
      seqeunce into the column
   */
 
-  increment_terminal(window, ws); // Increment all values in the terminal
+  increment_terminal(*window, ws); // Increment all values in the terminal
 
   for (size_t i = 0; i < ws.ws_col; i++) {
     terminal_col *t_data = &(*term_data)[i];
@@ -301,7 +301,7 @@ void progress_terminal(terminal_col **term_data, struct winsize ws,
           t_data->nucleotide_characters[t_data->array_pos];
 
       // Test if at the end of the nucleotide yet
-      if (t_data->line_length <= t_data->array_pos) {
+      if (t_data->line_length >= t_data->array_pos) {
         t_data->array_pos++;
       }
     }
@@ -343,8 +343,6 @@ struct winsize get_window_size() {
 fastq_nucleotide *get_term_window(struct winsize window) {
 
   // get a warning from c++, not an issue in C
-  // char *term_window =
-  //    malloc((window.ws_col * window.ws_row) * sizeof(*term_window));
   fastq_nucleotide *term_window =
       malloc(TERM_SIZE(window.ws_col, window.ws_row) * sizeof(*term_window));
 
@@ -412,6 +410,9 @@ int main() {
   terminal_col *term_data = terminal_fastq_data(ws, fq_data->counter);
   fastq_nucleotide *window = get_term_window(ws);
   load_fastq_terminal(&term_data, &fq_data, ws);
+  progress_terminal(&term_data, ws, &window);
+  progress_terminal(&term_data, ws, &window);
+  progress_terminal(&term_data, ws, &window);
   progress_terminal(&term_data, ws, &window);
   destroy_term_data(fq_data);
   destroy_term_fq(term_data, ws);
