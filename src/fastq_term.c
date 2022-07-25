@@ -258,11 +258,16 @@ void increment_terminal(fastq_nucleotide *window, struct winsize ws) {
  *
  * */
 void display_nucleotides(fastq_nucleotide *window, struct winsize ws) {
-
+  move(0, 0);
   for (size_t i = 0; i < TERM_SIZE(ws.ws_col, ws.ws_row) - 1; i++) {
-    printf("%c", window[i].nucleotide);
+    // addch(window[i].nucleotide | w );
+    // printf("%c", window[i].nucleotide);
+    attron(COLOR_PAIR(window[i].color_pair));
+    addch(window[i].nucleotide);
+    attroff(COLOR_PAIR(window[i].color_pair));
   }
-  printf("\n");
+  refresh();
+  getch();
 }
 
 /**
@@ -306,7 +311,6 @@ void progress_terminal(terminal_col **term_data, struct winsize ws,
       }
     }
   }
-  printf("Window size %d\n", TERM_SIZE(ws.ws_col, ws.ws_row));
   display_nucleotides(*window, ws);
 }
 
@@ -410,10 +414,18 @@ int main() {
   terminal_col *term_data = terminal_fastq_data(ws, fq_data->counter);
   fastq_nucleotide *window = get_term_window(ws);
   load_fastq_terminal(&term_data, &fq_data, ws);
+  initscr();
+  start_color();
+  // Need to decouple these later
+  init_pair(1, COLOR_RED, COLOR_BLACK);
+  init_pair(2, COLOR_YELLOW, COLOR_BLACK);
+  init_pair(3, COLOR_GREEN, COLOR_BLACK);
+  init_pair(4, COLOR_BLUE, COLOR_BLACK);
   progress_terminal(&term_data, ws, &window);
   progress_terminal(&term_data, ws, &window);
   progress_terminal(&term_data, ws, &window);
   progress_terminal(&term_data, ws, &window);
+  endwin();
   destroy_term_data(fq_data);
   destroy_term_fq(term_data, ws);
   free(fq_data);
