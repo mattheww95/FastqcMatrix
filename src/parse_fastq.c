@@ -7,9 +7,11 @@ messy. So I want to make fresh start and fix some of my mistakes
 // User defined headers
 #include "parse_fastq.h"
 #include "initialize_reads.h"
+#include <string.h>
 
 #define LINE_SIZE 256    // max length of a sequence
 #define FASTQ_LOADS 1000 // how many entries to prepare
+#define _SEQ_LEN_INIT_ 0;
 
 /**
  *@brief Take in the sequence and quality string, and return a pointer to an
@@ -49,7 +51,10 @@ fastq_nucleotide *init_fastq_term(char *sequence_data, char *quality_data) {
     terminal_data[i].quality_value = quality_data[i];
     terminal_data[i].color_pair =
         color_pair_val(terminal_data[i].quality_value);
+    terminal_data[i].sequence_length = _SEQ_LEN_INIT_;
   }
+  terminal_data[0].sequence_length = strlen(sequence_data);
+
   return terminal_data;
 }
 
@@ -108,8 +113,6 @@ fastq_nucleotides *init_fastq_data(FILE *fastq_data) {
       sequence_next = 1;
     } else if (sequence_next == 1) {
       strcpy(quality_sequence, line);
-      // printf("Sequence: %s\n", sequence);
-      // printf("Quality Sequence: %s\n", quality_sequence);
       if (strlen(quality_sequence) == strlen(sequence)) {
         term_data->data[term_data->counter] =
             init_fastq_term(sequence, quality_sequence);

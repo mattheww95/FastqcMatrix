@@ -11,6 +11,7 @@ typedef struct fastq_nucleotide{
     char nucleotide;
     char quality_value;
     uint8_t color_pair;
+    uint32_t sequence_length; // A hack to track the line length
 }fastq_nucleotide;
 
 typedef struct fastq_nucleotides{

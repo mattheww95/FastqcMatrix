@@ -146,6 +146,8 @@ typedef struct terminal_col {
 static const fastq_nucleotide EMPTY = {
     .nucleotide = ' ', .quality_value = ' ', .color_pair = ' '};
 
+static uint32_t _FASTQ_COUNTER_ = 0;
+
 /**
  * @brief Create a set of structs to hold the data to be sent to the
  * terminal display
@@ -158,8 +160,6 @@ static const fastq_nucleotide EMPTY = {
 
 terminal_col *terminal_fastq_data(struct winsize ws, uint32_t fq_nuc_counter) {
 
-  static uint32_t _FASTQ_COUNTER_ = 0;
-  _FASTQ_COUNTER_ = fq_nuc_counter;
   terminal_col *display_data = malloc(ws.ws_col * sizeof(*display_data));
   for (size_t i = 0; i < ws.ws_col; i++) {
     display_data[i].column_idx = i;
@@ -211,7 +211,9 @@ void load_fastq_terminal(terminal_col **terminal_data,
   while (buffer_counter != 0 && fq_cntr != 0) {
     // need to beef up these gaurd conditions
     if (!(*terminal_data)[buffer_counter].col_used) {
-
+      _FASTQ_COUNTER_ =
+          _FASTQ_COUNTER_ +
+          (*fq_data)->data[0]->sequence_length; // first value holds seq length
       (*terminal_data)[buffer_counter].nucleotide_characters =
           (*fq_data)->data[(*fq_data)->counter];
 
@@ -300,6 +302,7 @@ void progress_terminal(terminal_col **term_data, struct winsize ws,
     terminal_col *t_data = &(*term_data)[i];
 
     if (t_data->col_used) { // check if there are characters in the column
+      _FASTQ_COUNTER_--;    // decrement the counter when loading in characters
 
       // add a new nucleotided to the array window to display
       (*window)[t_data->column_idx] =
@@ -410,21 +413,22 @@ void test_increment_vals(char **term, const struct winsize *ws_,
 
 int main() {
   struct winsize ws = get_window_size();
+  initscr();
   fastq_nucleotides *fq_data = load_fastq("data/art_test1.fq");
+  uint32_t data_number = fq_data->counter;
   terminal_col *term_data = terminal_fastq_data(ws, fq_data->counter);
   fastq_nucleotide *window = get_term_window(ws);
   load_fastq_terminal(&term_data, &fq_data, ws);
-  initscr();
   start_color();
   // Need to decouple these later
   init_pair(1, COLOR_RED, COLOR_BLACK);
   init_pair(2, COLOR_YELLOW, COLOR_BLACK);
   init_pair(3, COLOR_GREEN, COLOR_BLACK);
   init_pair(4, COLOR_BLUE, COLOR_BLACK);
-  progress_terminal(&term_data, ws, &window);
-  progress_terminal(&term_data, ws, &window);
-  progress_terminal(&term_data, ws, &window);
-  progress_terminal(&term_data, ws, &window);
+  while (_FASTQ_COUNTER_ != 0) {
+    progress_terminal(&term_data, ws, &window);
+  }
+  // progress_terminal(&term_data, ws, &window);
   endwin();
   destroy_term_data(fq_data);
   destroy_term_fq(term_data, ws);
