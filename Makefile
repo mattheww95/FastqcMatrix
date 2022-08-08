@@ -12,3 +12,7 @@ bin/fastq_parser: src/parse_fastq.c src/initialize_reads.c
 
 bin/fastq_term: src/fastq_term.c src/parse_fastq.c src/initialize_reads.c
 	$(CC) $^ -o $@ -g -lncurses -Isrc
+
+bin/test_kseq: src/fastq_parser.c src/fastq_term.c
+	$(CC) $^ -o $@ -g -lz -Wall -pedantic
+

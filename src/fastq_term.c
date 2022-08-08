@@ -1,320 +1,55 @@
-/*
-Initialize the window for printing the fastq data, additionally process
-where to but the characters.
+/*Rework of the current fastq terminal to make better use of the reads and
+ *some cleaner code
+ *
+ */
 
-General notes:
-    - The buffer on the screen will be serially written into then updated,
-fortunately ncurses controls the baud rate of the screen to help me out!
-    - Each string will need to belong a certain column which must always have
-atleast one space before the next sequence
-
-First Idea:
-    1.  Create a hashmap one position for each column in the terminal.
-    2. initialize each column with either a fastq value or a cool down period
-        - The cool down period determining how long until a new read can be
-added to that position
-
-    It may be easier to create an array of pointer with each row pointing to a
-row on the terminal, so when a line advances, memory is copied to the next row
-filling the previous one.
-
-    So each columns gets picked, nucleotides are consumed one by one filling
-rows.
-
-    the struct the hashmap refers too should contain the fastq_nucleotides, and
-a cool down parameter e.g. struct display{ fastq_nucleotides*; uint
-length_of_string; uint cooldown; uint position; The position to set the array
-too } Whenever a new set of fastq_nucleoties is to be loaded in the cooldown can
-be reset!
-
-
-     Need a set to decide on if a position is or isnt in use. Might keep a set
-of positions, and a queue loaded up of new positions, with a position in the
-set. And with cool down positions taken up, when a col is 0 it is free and a
-cool down can be added
-
-     set_watch = [pos1, pos2, pos3, pos4, pos5, pos6 ... posN]
-     Values in the array:
-
-     set_watch = [0, 0, 0, 0, 0, 0 ... 0]
-     set_watch = [10, 5, 8, 8, 2 ,4 ...]
-
-
-    hashmap of column positions:
-                            pos_1 = fastq_nucleotides
-                            pos_2 = fastq_nucleotides
-                            pos_3 = fastq_nucleotides
-                            pos_4 = fastq_nucleotides
-                            pos_5 = fastq_nucleotides
-                            pos_6 = fastq_nucleotides
-                            pos_7 = fastq_nucleotides
-                            pos_8 = fastq_nucleotides
-                            pos_9 = fastq_nucleotides
-
-    each column maps to a row, with rows matching the number available on the
-terminal
-
-            rows = [
-                terminal_row* = [
--------------------------------------------------- ] terminal_row* = [
--------------------------------------------------- ] terminal_row* = [
--------------------------------------------------- ]
-            ]
-
-    the rows can then be transcribed into the screens buffer
-
-
-Second Idea:
-    I have realized attempt 1 is likely overly complicated. It would likely be
-better to create a coordinate system with some defines progress values through
-their coordinates.
-
-   e.g. load a character up, and progress it along the screen. every character
-in a buffer needs to be incremented one row length till off the screen
-
-Third Idea:
-    Treat each column as an object, which holds the entirety of the fastq
-string. So the whole array can be populated and different values can be
-incremented
-
-    So create an array of structs (kind of as suggested earlier), and initialize
-them with a char array the size of the row lengths. The struct can be defined
-as: struct term_col{ uint8_t column_idx; // the column in which to populate the
-array fastq_nucleotides* nuc_chars; // The array carrying the characters
-            fastq_nucleotides* column; // The column to fill  this actualy needs
-to be a struct array to hold quality tag
-        }
-
-    Then the array of columns a can be moved through iteratively updating the
-columns and populating the screen buffer
-
-    Functions needed:
-        1. One to create the structs for each terminal column
-        2. One to increment the character in the column array by one each time,
-then load a new nuc into the array. clearing the final row each time.
-        3. One to randomly assign a sequence to a column
-
-TODO: Need to make the windows size struct accessible everywhere, and constant
-so that if window is resized while running it does not result in a segfault
-
-
-Idea: Instead of storing a secondary array of nucleotide chars, make a window
-sizzed array of nucleotide chars and can read that to screen repeatadly
-
-
-
-2022-06-20: Matthew Wells
-*/
-
-#include "parse_fastq.h"
-#include <err.h>
-#include <fcntl.h>
-#include <ncurses.h>
-#include <stddef.h>
-#include <stdint.h>
+#include "fastq_term.h"
+#include "fastq_parser.h"
+#include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
 
-#define TERM_SIZE(x, y) (x * y)
-#define FILL_CHAR ' '
-//#define TERM_FILL_CHAR fastq_nucleotide a = {.nucleotide = ' ', quality_value
-//= ' ', color_pair = 0};
-#define LINE_SIZE 256 // may need to track row length in the structs
+// Value to determine if a column should be filled or not
+#define FILL_COLUMN_P 20
+
+// The value to altering the maximum allowed value for the cool down counter
+#define COOL_DOWN_MOD 10
+
+// for new illumina only
+// have 42 values to fill in
+
+//---Define the colour pair values
+#define POOR_QUALITY 1
+#define MODERATE_QUALITY 2
+#define GOOD_QUALITY 3
+#define ERROR 4
+
+//---define cut offs for quality
+#define GOOD_QUALITY_SCORE '1'
+#define MODERATE_QUALTIY_SCORE '.'
+// No need to do a poor one as it wil defualt
+
+//------GLOBALS------------
+static struct winsize ws = {
+    0, 0, 0, 0}; // The window size struct so it only needs to be computed once
+
+static uint64_t window_size =
+    0; // The total number of value that can fit on the terminal
 
 /**
- * @brief The terminal column data type
+ *@brief Return the colour value based on the quality value associated with with
+ *each called base
  *
+ *@param baseq The quality value associated with each base
  */
-typedef struct terminal_col {
-  size_t column_idx;                       // to hold column position
-  fastq_nucleotide *nucleotide_characters; // array of quality data
-  uint32_t line_length;
-  uint32_t array_pos; // Position within the nucleotide array to move to
-                      // the buffer screen
-  uint32_t line_idx;
-  // fastq_nucleotide
-  //     *column;      // the column row to fill, will be length of rows
-  //     available
-  uint8_t cooldown; // Randomly assign a cool down to a struct to start
-                    // displaying data
-  bool col_used;    // If the column is empty or not
-} terminal_col;
+uint8_t color_pair_val(char baseq) {
 
-static const fastq_nucleotide EMPTY = {
-    .nucleotide = ' ', .quality_value = ' ', .color_pair = ' '};
-
-static uint32_t _FASTQ_COUNTER_ = 0;
-
-/**
- * @brief Create a set of structs to hold the data to be sent to the
- * terminal display
- *
- * @param ws The winsize struct holding the terminal struct sizes
- * @param fq_nuc_counter  The counter passed from the fastq_nucleotides
- * struct, can be used a s progress bar in the future
- * @return terminal_col* The initialized display data
- */
-
-terminal_col *terminal_fastq_data(struct winsize ws, uint32_t fq_nuc_counter) {
-
-  terminal_col *display_data = malloc(ws.ws_col * sizeof(*display_data));
-  for (size_t i = 0; i < ws.ws_col; i++) {
-    display_data[i].column_idx = i;
-    // display_data[i].column = NULL;
-    display_data[i].array_pos = 0;
-    display_data[i].nucleotide_characters = NULL;
-    display_data[i].line_length = 0;
-    display_data[i].line_idx = 0;
-    display_data[i].col_used = false;
+  if (baseq > GOOD_QUALITY_SCORE) {
+    return GOOD_QUALITY;
+  } else if (baseq > MODERATE_QUALITY) {
+    return MODERATE_QUALITY;
+  } else {
+    return POOR_QUALITY;
   }
-  return display_data;
-}
-
-/**
- * @brief Destroy the terminal_col struct
- *
- * @param terminal_fq_data The Columns in the terminal displaying the datat to
- * the screen
- * @param ws  The window size struct to get row lengths
- */
-void destroy_term_fq(terminal_col *terminal_fq_data, struct winsize ws) {
-  for (size_t i = 0; i < ws.ws_row; i++) {
-    // free(terminal_fq_data[i].column);
-    free(terminal_fq_data[i].nucleotide_characters);
-  }
-  free(terminal_fq_data);
-}
-
-/**
- * @brief Initialize the terminal data with the initial set of data. Need to add
- * bounds check on the array
- *
- * @param terminal_data The columns to be displayed to the screen for the data
- * @param fq_data  The fastq data to be presented to the screen
- * @param ws The win struct size
- */
-void load_fastq_terminal(terminal_col **terminal_data,
-                         fastq_nucleotides **fq_data, struct winsize ws) {
-  /*
-      TODO: Realized this is not initialting the structs properly e.g. not
-     initializing all of them Future Implementation Note:
-      ---------------------------
-      This needs to be called every cycle to reload the buffer, can make a check
-     to randomly assign values back to them if theyre not filled.
-   */
-
-  int16_t buffer_counter = ws.ws_col - 1;
-  int16_t fq_cntr = (int16_t)(*fq_data)->counter--;
-  while (buffer_counter != 0 && fq_cntr != 0) {
-    // need to beef up these gaurd conditions
-    if (!(*terminal_data)[buffer_counter].col_used) {
-      _FASTQ_COUNTER_ =
-          _FASTQ_COUNTER_ +
-          (*fq_data)->data[0]->sequence_length; // first value holds seq length
-      (*terminal_data)[buffer_counter].nucleotide_characters =
-          (*fq_data)->data[(*fq_data)->counter];
-
-      // In reality  it may be better to set rand max and have rand() % rand()
-      // to make cooldown more random
-      (*terminal_data)[buffer_counter].cooldown = rand() % 10;
-      (*terminal_data)[buffer_counter].line_length = LINE_SIZE;
-      (*terminal_data)[buffer_counter].col_used = true;
-
-      (*fq_data)->counter--;
-      fq_cntr--;
-    }
-    buffer_counter--;
-  }
-}
-
-/**
- *@brief Increment all characters in the terminal forward except
- *
- *@param window The display array of values to be incremented
- *@param ws Struct of winsize parameter
- * */
-void increment_terminal(fastq_nucleotide *window, struct winsize ws) {
-  // Need to increment the data forward while making sure not to move past
-  // the end of the array or overwrite data
-
-  size_t window_size = TERM_SIZE(ws.ws_col, ws.ws_row);
-
-  for (size_t i = (ws.ws_col * ws.ws_row) - ws.ws_col; i < window_size; ++i) {
-    window[i].nucleotide = EMPTY.nucleotide;
-  }
-  for (size_t f = window_size - 1; f != 0; --f) {
-    if (window[f].nucleotide != EMPTY.nucleotide) {
-      window[f + ws.ws_col] = window[f];
-    }
-  }
-}
-
-/**
- *@brief Display the array of fastq nucleotided data to the terminal
- *
- *@param window fastq data to be displayed to the terminal
- *@param ws Winsize struct
- *
- * */
-void display_nucleotides(fastq_nucleotide *window, struct winsize ws) {
-  move(0, 0);
-  for (size_t i = 0; i < TERM_SIZE(ws.ws_col, ws.ws_row) - 1; i++) {
-    // addch(window[i].nucleotide | w );
-    // printf("%c", window[i].nucleotide);
-    attron(COLOR_PAIR(window[i].color_pair));
-    addch(window[i].nucleotide);
-    attroff(COLOR_PAIR(window[i].color_pair));
-  }
-  refresh();
-  getch();
-}
-
-/**
- * @brief  Progress the characters in the terminal from the nucleotide array
- * into the column
- *
- * @param term_data Struct of the terminal_col type
- * @param ws The window size struct for column length
- * @param window The window array holding fastq nucleotide structs
- */
-
-void progress_terminal(terminal_col **term_data, struct winsize ws,
-                       fastq_nucleotide **window) {
-  /*
-
-      Steps for what this function must do, as i need to plan this:
-          Step 1. Move through each of the terminal columns
-          Step 2. If the column is in use, advance the characters in the
-     terminal i. if it is not 0, add a character from the nuc chars into the
-     column ii. advance the characters in the column forward 1 iii. decrement
-     the column counter iv. Increment the line_idx value of the struct to get
-     the next column iv. If the column is empty and/or cooldown is 0 set the
-     column usage to false Step 3. If the usage is false load a new fastq
-     seqeunce into the column
-  */
-
-  increment_terminal(*window, ws); // Increment all values in the terminal
-
-  for (size_t i = 0; i < ws.ws_col; i++) {
-    terminal_col *t_data = &(*term_data)[i];
-
-    if (t_data->col_used) { // check if there are characters in the column
-      _FASTQ_COUNTER_--;    // decrement the counter when loading in characters
-
-      // add a new nucleotided to the array window to display
-      (*window)[t_data->column_idx] =
-          t_data->nucleotide_characters[t_data->array_pos];
-
-      // Test if at the end of the nucleotide yet
-      if (t_data->line_length >= t_data->array_pos) {
-        t_data->array_pos++;
-      }
-    }
-  }
-  display_nucleotides(*window, ws);
 }
 
 /**
@@ -322,9 +57,11 @@ void progress_terminal(terminal_col **term_data, struct winsize ws,
  *
  * @return struct winsize
  */
-struct winsize get_window_size() {
-  struct winsize ws; // winsize holds two unsigned shorts, according to
-                     // termios.h
+void get_window_size() {
+  // struct winsize _ws = {0, 0, 0, 0};
+  // winsize holds two unsigned shorts, according to
+  // termios.h
+
   int fd;
   fd = open("/dev/tty", O_RDWR);
   if (fd < 0) {
@@ -336,125 +73,129 @@ struct winsize get_window_size() {
     err(1, "/dev/tty");
   }
 
+  // keeping the window struct in memory so it does not need to be calculated
+  // each time
+  window_size = ws.ws_col * ws.ws_row;
   close(fd);
-  return ws;
+  // return _ws;
 }
 
 /**
- * @brief Get the term window object, create the terminal window for testing
- * purposes
+ *@brief Create an array large enough to hold all of the nucleotide characters
+ *to be displayed on screen
  *
- * @param window A winsize struct to get the terminal bounds
- * @return char* To the terminal window buffer
- */
-fastq_nucleotide *get_term_window(struct winsize window) {
+ *@return A pointer to an array of read_char structs
+ * */
+read_char *init_term_read_buff() {
+  read_char *terminal = malloc(sizeof(*terminal) * window_size);
+  return terminal;
+}
 
-  // get a warning from c++, not an issue in C
-  fastq_nucleotide *term_window =
-      malloc(TERM_SIZE(window.ws_col, window.ws_row) * sizeof(*term_window));
-
-  for (size_t i = 0; i < TERM_SIZE(window.ws_row, window.ws_col); i++) {
-    term_window[i] = EMPTY;
+/**
+ *@brief Initialize the terminal_column array to feed the screen buffer
+ *
+ *@param the winsize struct containing the terminal width e.g. the number of
+ *columns
+ *@return An Array of emtpy structs
+ * */
+terminal_col *initialize_terminal(const struct winsize _ws) {
+  terminal_col *term_data = malloc(sizeof(*term_data) * _ws.ws_col);
+  for (size_t i = 0; i < ws.ws_col; i++) {
+    term_data[i].column_idx = i;
+    term_data[i].cool_down = i;
+    term_data[i].is_empty = true;
+    term_data[i].nucleotides = NULL;
   }
-  return term_window;
+  return term_data;
 }
 
 /**
- * @brief Return some random position in the row to populate with a character
+ *@brief Convert a read quality sequence into a an array of read_char structs to
+ *be loaded into the buffer to be displayed on the terminal
  *
- * @param row_length The ws_row atrribute of the winsize struct
- * @return uint32_t The value of the row to fill
+ *@param A pointer to a fastq sequence of type kseq_t
  */
-uint32_t row_rand_position(unsigned short row_length) {
-  uint32_t r = rand() % row_length;
-  return r;
-}
-
-/**
- * @brief  Put some random characters into the first row of the terminal buffer
- *
- * @param term_buffer The array to be printed to the terminal
- * @param row_length The row length to be populated
- */
-void test_populate_rows(char **term_buffer, unsigned short row_length) {
-  uint32_t number_rows_fill =
-      row_length * 0.1; // populate 10% of the columns with chars
-  for (size_t i = 0; i < number_rows_fill; i++) {
-    uint32_t val = row_rand_position(row_length);
-    (*term_buffer)[val] = 'X'; // fill the buffer with some arbitrary value
+read_char *seq_to_read_char(kseq_t *sequence) {
+  if (sequence->seq.l != sequence->qual.l) {
+    fprintf(stderr,
+            "Sequence length does not equal quality length for read: %s\n",
+            sequence->name.s);
   }
+  read_char *read_value =
+      malloc(sizeof(*read_value) * sequence->seq.l); // initialize read values
+  for (size_t i = 0; i < sequence->seq.l; i++) {
+    read_value[i].nucleotide = sequence->seq.s[i];
+    read_value[i].colour_value = color_pair_val(sequence->qual.s[i]);
+  }
+  return read_value;
 }
 
 /**
- * @brief Increment wherever an x is moving it down the screen
+ *@brief check the terminal columns to determine if they are empty/finished
+ *cooling down and load another set of sequences if needed
  *
- * @param term A pointer to the start of the array
- * @param ws_ The winsize struct holding the array bounds.
- * @param row_val_ The row to place new information
- */
-void test_increment_vals(char **term, const struct winsize *ws_,
-                         const unsigned long int row_val_) {
-
-  size_t term_size = TERM_SIZE(ws_->ws_col, ws_->ws_row);
-  unsigned short row_val = row_val_ % ws_->ws_row;
-
-  // Clear the bottome row out each time
-  for (size_t g = ((ws_->ws_row * ws_->ws_col) - ws_->ws_col); g < term_size;
-       g++) {
-    (*term)[g] = FILL_CHAR;
-  }
-  for (size_t i = term_size; i != -1; i--) {
-    if ((*term)[i] == 'X') {
-      (*term)[i + ws_->ws_col] = 'X';
-      (*term)[i] = FILL_CHAR; // bounds check not needed
+ *@param terminal_columns A pointer to an array of the terminal columns to be
+ *loaded
+ *@param fastq_reads The reads to be loaded into the terminal structs
+ **/
+terminal_col *load_terminal_columns(terminal_col *terminal_columns,
+                                    kseq_t *fastq_reads,
+                                    uint64_t sequence_count) {
+  // extern volatile uint64_t sequence_count;
+  // left off here
+  for (size_t i = 0; i < ws.ws_col; i++) {
+    if (terminal_columns[i].cool_down == 0 && terminal_columns[i].is_empty) {
+      if (sequence_count == 0) {
+        fprintf(stderr, "You have reached the end of your fastq file!\n");
+        // Need to add in a GOTO statement here to trigger destructor element
+        printf("\n"); // puting this in for now
+      }
+      uint64_t rand_value = get_rand();
+      if (rand_value > FILL_COLUMN_P) {
+        terminal_columns[i].cool_down = (get_rand() % COOL_DOWN_MOD);
+        terminal_columns[i].nucleotides =
+            seq_to_read_char(&fastq_reads[sequence_count]);
+        // This destructor will likely be a potential source of bugs
+        kseq_destroy(&fastq_reads[sequence_count]);
+        sequence_count--;
+        terminal_columns[i].is_empty = false;
+      }
     }
   }
+  return terminal_columns;
 }
 
-int main() {
-  struct winsize ws = get_window_size();
-  initscr();
-  fastq_nucleotides *fq_data = load_fastq("data/art_test1.fq");
-  uint32_t data_number = fq_data->counter;
-  terminal_col *term_data = terminal_fastq_data(ws, fq_data->counter);
-  fastq_nucleotide *window = get_term_window(ws);
-  load_fastq_terminal(&term_data, &fq_data, ws);
-  start_color();
-  // Need to decouple these later
-  init_pair(1, COLOR_RED, COLOR_BLACK);
-  init_pair(2, COLOR_YELLOW, COLOR_BLACK);
-  init_pair(3, COLOR_GREEN, COLOR_BLACK);
-  init_pair(4, COLOR_BLUE, COLOR_BLACK);
-  while (_FASTQ_COUNTER_ != 0) {
-    progress_terminal(&term_data, ws, &window);
+void destroy_terminal_columns(terminal_col *term_data) {
+  for (size_t i = 0; i < ws.ws_col; i++) {
+    free(term_data[i].nucleotides);
   }
-  // progress_terminal(&term_data, ws, &window);
-  endwin();
-  destroy_term_data(fq_data);
-  destroy_term_fq(term_data, ws);
-  free(fq_data);
-  free(window);
-  /*
-  size_t term_size = TERM_SIZE(ws.ws_col, ws.ws_row); // should make this static
-  so does not always need to be recalculated char* term = get_term_window(ws);
-  test_populate_rows(&term, ws.ws_col); // passing col, as that is the number of
-  rows fprintf(stderr, "Rows size %ud", ws.ws_row); initscr(); mvprintw(0, 0,
-  term); refresh(); unsigned long int accu = 1; // skip first row, so row
-  position is always positive uint8_t test_uptoval = 255; uint8_t t_val = 0;
-  while (t_val != test_uptoval)
-  {
-      if((accu % 2) == 0){
-          test_populate_rows(&term, ws.ws_col);
-      }
-      test_increment_vals(&term, &ws, accu);
-      mvprintw(0, 0, term);
-      refresh();
-      ++accu;
-      t_val++;
-  }
+  free(term_data);
+}
 
-  endwin();
-  free(term);
-  */
+uint64_t get_rand() {
+  uint64_t random_value = (uint64_t)(rand() % ws.ws_col);
+  return random_value;
+}
+
+int main(int argc, char **argv) {
+  if (argc == 1) {
+    fprintf(stderr, "No file input specified\n");
+    return -1;
+  }
+  get_window_size(); // Initialize winsize struct
+  if (ws.ws_col == 0 || window_size == 0) {
+    fprintf(stderr, "Winsize struct not properly initiailized\n");
+    fprintf(stderr, "Dimensions %d x %d\n", ws.ws_col, ws.ws_row);
+    return -1;
+  }
+  extern volatile uint64_t sequence_count;
+  printf("fastq term sequence count:%lu\n", sequence_count);
+  kseq_t *read_data = read_file(argv[1]);
+  printf("fastq term sequence count:%lu\n", sequence_count);
+  terminal_col *term_data = initialize_terminal(ws);
+  term_data = load_terminal_columns(term_data, read_data, sequence_count);
+  destroy_reads(read_data);
+  destroy_terminal_columns(term_data);
+
   return 0;
 }
