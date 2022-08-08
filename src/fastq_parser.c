@@ -2,32 +2,27 @@
  * Re-writing alot of the program now that I am wiser with C
  * */
 
-#include "klib/kseq.h"
-#include "klib/kstring.h"
-#include "string.h"
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <zlib.h>
+#include "fastq_parser.h"
 
-KSEQ_INIT(gzFile, gzread);
-static uint64_t sequence_count = 0;
-void kmemcpy(kseq_t *, kseq_t *);
+// KSEQ_INIT(gzFile, gzread);
+// extern volatile uint64_t sequence_count;
 
-/*
+volatile uint64_t sequence_count = 0;
+/**
  *@brief Read in the fastq file and prepare struct of fastq data
  *
  *@param inpath The path to the fastq file to open
  * */
-kseq_t **read_file(const char *inpath) {
+kseq_t *read_file(const char *inpath) {
   gzFile fp = NULL;
   kseq_t *seq = NULL;
   int l = 0;
   uint64_t start_size = 40000;
+  // extern volatile uint64_t sequence_count = 0;
   fp = gzopen(inpath, "r");
   seq = kseq_init(fp);
   // Initialize enought memory for 40000 sequences
-  kseq_t **fastq_data = malloc(sizeof(fastq_data) * start_size);
+  kseq_t *fastq_data = malloc(sizeof(*fastq_data) * start_size);
   while ((l = kseq_read(seq)) >= 0) {
     if (start_size == sequence_count) {
       fastq_data = realloc(fastq_data, start_size * 3);
@@ -36,17 +31,20 @@ kseq_t **read_file(const char *inpath) {
     kseq_t *sequence = malloc(sizeof(*sequence));
     // sequence = seq;
     kmemcpy(sequence, seq);
-    printf("Test: %s\n", seq->name.s);
-    fastq_data[sequence_count] = sequence;
+    // printf("Test: %s\n", seq->name.s);
+    fastq_data[sequence_count] = *sequence;
     // printf("%s: %s\n", fastq_data[sequence_count]->name.s,
     //        fastq_data[sequence_count]->seq.s);
     sequence_count++;
   }
+  fprintf(stderr, "Sequence count: %lu\n", sequence_count);
+  fprintf(stderr, "Finished loading reads\n");
   kseq_destroy(seq);
   return fastq_data;
 }
 
-/*@brief Create a copy of a kseq object
+/**
+ *@brief Create a copy of a kseq object
  *
  *@param dest The kseq_t object to be copy into
  *@param src The seq object the data is being copied from
@@ -80,27 +78,32 @@ void kmemcpy(kseq_t *dest, kseq_t *src) {
   dest->last_char = src->last_char;
 }
 
-/*
+/**
  *@brief Free memory used by the reads
- *
+ *@param read_data the array of read data
  */
-void destroy_reads(kseq_t **read_data) {
+void destroy_reads(kseq_t *read_data) {
   for (size_t i = 0; i < sequence_count; i++) {
-    // printf("%s: %s\n", read_data[i]->name.s, read_data[i]->seq.s);
-    kseq_destroy(read_data[i]);
+    fprintf(stderr, "%s: %s\n", read_data[i].name.s, read_data[i].seq.s);
+    // kseq_destroy(&read_data[i]);
+    free(read_data[i].name.s);
+    free(read_data[i].comment.s);
+    free(read_data[i].seq.s);
+    free(read_data[i].qual.s);
+    free(read_data[i].f);
   }
   free(read_data);
 }
 
-int main(int argc, char **argv) {
+/*int main(int argc, char **argv) {
   if (argc == 1) {
     fprintf(stderr, "Could not open fastq file\n");
     return -1;
   }
-  kseq_t **data = read_file(argv[1]);
+  kseq_t *data = read_file(argv[1]);
   destroy_reads(data);
 }
-
+*/
 // int main(int argc, char **argv) {
 //   gzFile fp = NULL;
 //   kseq_t *seq = NULL;

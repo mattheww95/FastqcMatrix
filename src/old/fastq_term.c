@@ -320,7 +320,7 @@ void progress_terminal(terminal_col **term_data, struct winsize ws,
   display_nucleotides(*window, ws);
 }
 
-/**
+/*
  * @brief Get the window size object
  *
  * @return struct winsize
