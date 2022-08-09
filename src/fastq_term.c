@@ -105,6 +105,8 @@ terminal_col *initialize_terminal(const struct winsize _ws) {
     term_data[i].cool_down = i;
     term_data[i].is_empty = true;
     term_data[i].nucleotides = NULL;
+    term_data[i].read_length = 0;
+    term_data[i].array_pos = 0;
   }
   return term_data;
 }
@@ -148,14 +150,18 @@ terminal_col *load_terminal_columns(terminal_col *terminal_columns,
       if (sequence_count == 0) {
         fprintf(stderr, "You have reached the end of your fastq file!\n");
         // Need to add in a GOTO statement here to trigger destructor element
+        // TODO Create goto statement for this clean up or better yet a clenaup
+        // function
         printf("\n"); // puting this in for now
       }
       uint64_t rand_value = get_rand();
       if (rand_value > FILL_COLUMN_P) {
         terminal_columns[i].cool_down = (get_rand() % COOL_DOWN_MOD);
+        terminal_columns[i].array_pos = 0;
         terminal_columns[i].nucleotides =
             seq_to_read_char(&fastq_reads[sequence_count]);
         // This destructor will likely be a potential source of bugs
+        terminal_columns[i].read_length = fastq_reads[sequence_count].seq.l;
         kseq_destroy(&fastq_reads[sequence_count]);
         sequence_count--;
         terminal_columns[i].is_empty = false;
@@ -163,6 +169,36 @@ terminal_col *load_terminal_columns(terminal_col *terminal_columns,
     }
   }
   return terminal_columns;
+}
+
+/**
+ *@brief Fill the display buffer with the loaded terminal columns
+ *
+ *@param display_buffer Pointer to the buffer to be displayed on the screen,
+ *passed by reference
+ *@param loaded_columns The terminal columns loaded with reads to display to the
+ *screen
+ **/
+void load_display_buffer(read_char *display_buffer,
+                         terminal_col *loaded_columns) {
+  // This function needs to decrement the cooldown counter
+  // fill the terminal display buffer
+  for (size_t i = 0; i < ws.ws_col; i++) {
+    if (!loaded_columns[i].is_empty &&
+        loaded_columns[i].array_pos != loaded_columns[i].array_pos) {
+      // while the column is not empty add new nucleotides to the screen
+      display_buffer[i] =
+          loaded_columns[i].nucleotides[loaded_columns[i].array_pos];
+      loaded_columns[i].array_pos++;
+    } else if (!loaded_columns[i].is_empty && loaded_columns[i].cool_down > 0) {
+      // once the column has exhausted all nucleotides in the array start
+      // decrementing the cool down
+      loaded_columns[i].cool_down--;
+    } else {
+      // once the cooldown is decremented set the column to empty to be refilled
+      loaded_columns[i].is_empty = true;
+    }
+  }
 }
 
 void destroy_terminal_columns(terminal_col *term_data) {
@@ -189,6 +225,7 @@ int main(int argc, char **argv) {
     return -1;
   }
   extern volatile uint64_t sequence_count;
+  read_char *terminal_screen = init_term_read_buffer(); // The terminal buffer
   printf("fastq term sequence count:%lu\n", sequence_count);
   kseq_t *read_data = read_file(argv[1]);
   printf("fastq term sequence count:%lu\n", sequence_count);
