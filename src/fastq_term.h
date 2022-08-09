@@ -2,6 +2,7 @@
 #define __FASTQ_TERM__
 
 #include "fastq_parser.h"
+#include <cstdint>
 #include <err.h>
 #include <fcntl.h>
 #include <ncurses.h>
@@ -32,6 +33,8 @@ typedef struct terminal_col {
   uint16_t cool_down;
   uint64_t column_idx;
   read_char *nucleotides;
+  uint64_t read_length;
+  uint64_t array_pos;
 
 } terminal_col;
 
