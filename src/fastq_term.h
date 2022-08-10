@@ -2,7 +2,6 @@
 #define __FASTQ_TERM__
 
 #include "fastq_parser.h"
-#include <cstdint>
 #include <err.h>
 #include <fcntl.h>
 #include <ncurses.h>
@@ -54,4 +53,6 @@ uint64_t get_rand(); // The value used to random colour pairings
 terminal_col *load_terminal_columns(terminal_col *terminal_columns,
                                     kseq_t *fastq_reads,
                                     uint64_t sequence_count);
+void load_display_buffer(read_char **display_buffer_,
+                         terminal_col *loaded_columns);
 #endif
