@@ -9,6 +9,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+//------ Default terminal fill values-----
+#define DEF_NUC ' '
+
 // Value to determine if a column should be filled or not
 #define FILL_COLUMN_P 20
 
@@ -89,6 +92,11 @@ void get_window_size() {
  * */
 read_char *init_term_read_buffer() {
   read_char *terminal = malloc(sizeof(*terminal) * window_size);
+  for (size_t i = 0; i < window_size; i++) {
+    terminal[i].colour_value = 0;
+    terminal[i].quality_value = DEF_NUC;
+    terminal[i].nucleotide = DEF_NUC;
+  }
   return terminal;
 }
 
@@ -211,6 +219,11 @@ void load_display_buffer(read_char **display_buffer_,
   }
 }
 
+/**
+ *@brief free all structs containting the terminal data
+ *
+ *@param term_data The data to be deleted from the terminal
+ * */
 void destroy_terminal_columns(terminal_col *term_data) {
   for (size_t i = 0; i < ws.ws_col; i++) {
     free(term_data[i].nucleotides);
@@ -221,6 +234,31 @@ void destroy_terminal_columns(terminal_col *term_data) {
 uint64_t get_rand() {
   uint64_t random_value = (uint64_t)(rand() % ws.ws_col);
   return random_value;
+}
+
+/**
+ *@brief Intermediate method to make sure the buffer is being loaded properly
+ *
+ *@param disply_buffer The pointer to the terminal data types
+ */
+void test_print_buffer(read_char *display_buffer) {
+  for (size_t i = 0; i < window_size; i++) {
+    if (i % ws.ws_col == 0) {
+      printf("\n");
+    }
+    printf("%c", display_buffer[i].nucleotide);
+  }
+}
+
+/**
+ *@brief Progress teh characters down the terminal
+ *
+ *@param terminal_data pointer to the buffer holding the currently used read
+ *characters
+ * */
+void progress_terminal(read_char *terminal_data) {
+
+  // TODO leaving off here
 }
 
 int main(int argc, char **argv) {
@@ -243,6 +281,7 @@ int main(int argc, char **argv) {
   terminal_col *term_data = initialize_terminal(ws);
   term_data = load_terminal_columns(term_data, read_data, sequence_count);
   load_display_buffer(&terminal_screen, term_data);
+  test_print_buffer(terminal_screen); // test printing to screen
   // destroy_reads(read_data);
   destroy_terminal_columns(term_data);
   free(read_data);
