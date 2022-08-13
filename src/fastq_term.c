@@ -5,15 +5,20 @@
 
 #include "fastq_term.h"
 #include "fastq_parser.h"
+#include <ncurses.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 //------ Default terminal fill values-----
 #define DEF_NUC ' '
 
 // Value to determine if a column should be filled or not
-#define FILL_COLUMN_P 20
+#define FILL_COLUMN_P 40
 
 // The value to altering the maximum allowed value for the cool down counter
 #define COOL_DOWN_MOD 10
@@ -38,6 +43,11 @@ static struct winsize ws = {
 
 static uint64_t window_size =
     0; // The total number of value that can fit on the terminal
+
+static uint64_t cols_in_use = 0; // track how many columns are in use
+
+uint64_t mod_vals[5] = {2, 3, 4, 1, 6};
+uint64_t mod_val_length = 5;
 
 /**
  *@brief Return the colour value based on the quality value associated with with
@@ -93,7 +103,7 @@ void get_window_size() {
 read_char *init_term_read_buffer() {
   read_char *terminal = malloc(sizeof(*terminal) * window_size);
   for (size_t i = 0; i < window_size; i++) {
-    terminal[i].colour_value = 0;
+    terminal[i].colour_value = ERROR;
     terminal[i].quality_value = DEF_NUC;
     terminal[i].nucleotide = DEF_NUC;
   }
@@ -111,7 +121,7 @@ terminal_col *initialize_terminal(const struct winsize _ws) {
   terminal_col *term_data = malloc(sizeof(*term_data) * _ws.ws_col);
   for (size_t i = 0; i < ws.ws_col; i++) {
     term_data[i].column_idx = i;
-    term_data[i].cool_down = i;
+    term_data[i].cool_down = (rand() % COOL_DOWN_MOD);
     term_data[i].is_empty = true;
     term_data[i].nucleotides = NULL;
     term_data[i].read_length = 0;
@@ -150,33 +160,43 @@ read_char *seq_to_read_char(kseq_t *sequence) {
  *@param fastq_reads The reads to be loaded into the terminal structs
  **/
 terminal_col *load_terminal_columns(terminal_col *terminal_columns,
-                                    kseq_t *fastq_reads,
-                                    uint64_t sequence_count) {
+                                    kseq_t *fastq_reads) {
+  // uint64_t sequence_count) {
   // extern volatile uint64_t sequence_count;
   // left off here
+  uint64_t cols_thresh = ws.ws_col * 1;
+  // Experimenting with some more experimental filling methods
+  uint64_t arr_pos = rand() % mod_val_length;
+  uint64_t mix_test = mod_vals[arr_pos];
   for (size_t i = 0; i < ws.ws_col; i++) {
-    if (terminal_columns[i].cool_down == 0 && terminal_columns[i].is_empty) {
-      if (sequence_count == 0) {
-        fprintf(stderr, "You have reached the end of your fastq file!\n");
-        // Need to add in a GOTO statement here to trigger destructor element
-        // TODO Create goto statement for this clean up or better yet a clenaup
-        // function
-        printf("\n"); // puting this in for now
-        exit(1);
-      }
-      uint64_t rand_value = get_rand();
-      if (rand_value > FILL_COLUMN_P) {
-        terminal_columns[i].cool_down = (get_rand() % COOL_DOWN_MOD);
-        terminal_columns[i].array_pos = 0;
-        fprintf(stderr, "%s\n", fastq_reads[sequence_count].seq.s);
-        terminal_columns[i].nucleotides =
-            seq_to_read_char(&fastq_reads[sequence_count]);
-        // This destructor will likely be a potential source of bugs
-        terminal_columns[i].read_length = fastq_reads[sequence_count].seq.l;
-        // TODO figure out why this throws an error
-        // kseq_destroy(&fastq_reads[sequence_count]);
-        sequence_count--;
-        terminal_columns[i].is_empty = false;
+    if (sequence_count == 0) {
+      fprintf(stderr, "You have reached the end of your fastq file!\n");
+      // Need to add in a GOTO statement here to trigger destructor element
+      // TODO Create goto statement for this clean up or better yet a clenaup
+      // function
+      printf("\n"); // puting this in for now
+      exit(1);
+    }
+    if (cols_thresh == cols_in_use) {
+      break;
+    } else if ((i % mix_test) == 0) {
+      if (terminal_columns[i].cool_down == 0 && terminal_columns[i].is_empty) {
+        uint64_t rand_value = get_rand();
+        if (rand_value > FILL_COLUMN_P) {
+          terminal_columns[i].cool_down = (get_rand() % COOL_DOWN_MOD);
+          terminal_columns[i].array_pos = 0;
+          // fprintf(stderr, "%s\n", fastq_reads[sequence_count].seq.s);
+          // fprintf(stderr, "%s\n", fastq_reads[sequence_count].name.s);
+          terminal_columns[i].nucleotides =
+              seq_to_read_char(&fastq_reads[sequence_count]);
+          // This destructor will likely be a potential source of bugs
+          terminal_columns[i].read_length = fastq_reads[sequence_count].seq.l;
+          // TODO figure out why this throws an error
+          // kseq_destroy(&fastq_reads[sequence_count]);
+          sequence_count--;
+          terminal_columns[i].is_empty = false;
+          cols_in_use++;
+        }
       }
     }
   }
@@ -192,15 +212,14 @@ terminal_col *load_terminal_columns(terminal_col *terminal_columns,
  *screen
  **/
 void load_display_buffer(read_char **display_buffer_,
-                         terminal_col *loaded_columns) {
+                         terminal_col **loaded_columns_) {
   // This function needs to decrement the cooldown counter
   // fill the terminal display buffer
   read_char *display_buffer = *(display_buffer_);
+  terminal_col *loaded_columns = *loaded_columns_;
   for (size_t i = 0; i < ws.ws_col; i++) {
-    if (loaded_columns[i].nucleotides == NULL) {
-      continue;
-    } else if (!loaded_columns[i].is_empty &&
-               loaded_columns[i].array_pos != loaded_columns[i].read_length) {
+    if (!loaded_columns[i].is_empty &&
+        loaded_columns[i].array_pos != loaded_columns[i].read_length) {
       // while the column is not empty add new nucleotides to the screen
       display_buffer[i] =
           loaded_columns[i].nucleotides[loaded_columns[i].array_pos];
@@ -215,6 +234,7 @@ void load_display_buffer(read_char **display_buffer_,
     } else {
       // once the cooldown is decremented set the column to empty to be refilled
       loaded_columns[i].is_empty = true;
+      cols_in_use--;
     }
   }
 }
@@ -248,6 +268,25 @@ void test_print_buffer(read_char *display_buffer) {
     }
     printf("%c", display_buffer[i].nucleotide);
   }
+  for (size_t i = (window_size - ws.ws_row); i < window_size; i++) {
+    display_buffer[i].colour_value = ERROR;
+    display_buffer[i].quality_value = DEF_NUC;
+    display_buffer[i].nucleotide = DEF_NUC;
+  }
+  printf("\n");
+}
+
+/**
+ *@brief display colourized nucleotides on screen
+ *@param display_buffer The pointer to the terminal data types
+ **/
+void print_buffer(read_char *display_buffer) {
+  move(0, 0);
+  for (size_t i = 0; i < window_size - 1; i++) {
+    attron(COLOR_PAIR(display_buffer[i].colour_value));
+    addch(display_buffer[i].nucleotide);
+    attroff(COLOR_PAIR(display_buffer[i].colour_value));
+  }
 }
 
 /**
@@ -256,9 +295,18 @@ void test_print_buffer(read_char *display_buffer) {
  *@param terminal_data pointer to the buffer holding the currently used read
  *characters
  * */
-void progress_terminal(read_char *terminal_data) {
+void progress_terminal(read_char **terminal_data) {
 
   // TODO leaving off here
+  for (size_t i = (window_size - ws.ws_row); i != -1; i--) {
+    if ((*terminal_data)[i].nucleotide != DEF_NUC) {
+      (*terminal_data)[i + ws.ws_col] = (*terminal_data)[i];
+      (*terminal_data)[i].colour_value = 0;
+      (*terminal_data)[i].quality_value = DEF_NUC;
+      (*terminal_data)[i].nucleotide = DEF_NUC;
+    }
+  }
+  refresh();
 }
 
 int main(int argc, char **argv) {
@@ -274,14 +322,31 @@ int main(int argc, char **argv) {
   }
   extern volatile uint64_t sequence_count;
   read_char *terminal_screen = init_term_read_buffer(); // The terminal buffer
-  printf("fastq term sequence count:%lu\n", sequence_count);
+  // printf("fastq term sequence count:%lu\n", sequence_count);
   kseq_t *read_data = read_file(argv[1]);
   sequence_count--; // checking if this ends errors andd it does!
-  printf("fastq term sequence count:%lu\n", sequence_count);
+  // printf("fastq term sequence count:%lu\n", sequence_count);
+  initscr();
+  start_color();
+  use_default_colors();
+  // init_pair(1, COLOR_RED, COLOR_BLACK);
+  // init_pair(2, COLOR_YELLOW, COLOR_BLACK);
+  // init_pair(3, COLOR_GREEN, COLOR_BLACK);
+  // init_pair(4, COLOR_BLUE, COLOR_BLACK);
+  init_pair(1, COLOR_RED, -1);
+  init_pair(2, COLOR_YELLOW, -1);
+  init_pair(3, COLOR_GREEN, -1);
+  init_pair(4, COLOR_BLUE, -1);
   terminal_col *term_data = initialize_terminal(ws);
-  term_data = load_terminal_columns(term_data, read_data, sequence_count);
-  load_display_buffer(&terminal_screen, term_data);
-  test_print_buffer(terminal_screen); // test printing to screen
+  term_data = load_terminal_columns(term_data, read_data);
+  while (sequence_count != 0) {
+    load_display_buffer(&terminal_screen, &term_data);
+    print_buffer(&(*terminal_screen)); // test printing to screen
+    progress_terminal(&terminal_screen);
+    sleep(1);
+    term_data = load_terminal_columns(term_data, read_data);
+  }
+  endwin();
   // destroy_reads(read_data);
   destroy_terminal_columns(term_data);
   free(read_data);

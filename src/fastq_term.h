@@ -37,6 +37,8 @@ typedef struct terminal_col {
 
 } terminal_col;
 
+void print_buffer(read_char *display_buffer);
+
 read_char *init_term_read_buffer(); // Create a buffer on the terminal for the
                                     // reads to be displayed
 terminal_col *initialize_terminal(
@@ -51,8 +53,8 @@ uint64_t get_rand(); // The value used to random colour pairings
 
 // Fill the terminal columns with read data
 terminal_col *load_terminal_columns(terminal_col *terminal_columns,
-                                    kseq_t *fastq_reads,
-                                    uint64_t sequence_count);
+                                    kseq_t *fastq_reads);
+// uint64_t sequence_count);
 void load_display_buffer(read_char **display_buffer_,
-                         terminal_col *loaded_columns);
+                         terminal_col **loaded_columns);
 #endif
