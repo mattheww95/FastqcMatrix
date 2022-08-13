@@ -18,7 +18,7 @@
 #define DEF_NUC ' '
 
 // Value to determine if a column should be filled or not
-#define FILL_COLUMN_P 40
+#define FILL_COLUMN_P 10
 
 // The value to altering the maximum allowed value for the cool down counter
 #define COOL_DOWN_MOD 10
@@ -46,8 +46,8 @@ static uint64_t window_size =
 
 static uint64_t cols_in_use = 0; // track how many columns are in use
 
-uint64_t mod_vals[5] = {2, 3, 4, 1, 6};
-uint64_t mod_val_length = 5;
+uint64_t mod_vals[6] = {1, 2, 3, 5, 7, 11};
+uint64_t mod_val_length = 6;
 
 /**
  *@brief Return the colour value based on the quality value associated with with
@@ -164,10 +164,11 @@ terminal_col *load_terminal_columns(terminal_col *terminal_columns,
   // uint64_t sequence_count) {
   // extern volatile uint64_t sequence_count;
   // left off here
-  uint64_t cols_thresh = ws.ws_col * 1;
+  uint64_t cols_thresh = ws.ws_col * 0.85;
   // Experimenting with some more experimental filling methods
   uint64_t arr_pos = rand() % mod_val_length;
   uint64_t mix_test = mod_vals[arr_pos];
+  // uint64_t mix_test = mod_vals[0]; // by passing mix randomness
   for (size_t i = 0; i < ws.ws_col; i++) {
     if (sequence_count == 0) {
       fprintf(stderr, "You have reached the end of your fastq file!\n");
@@ -179,7 +180,7 @@ terminal_col *load_terminal_columns(terminal_col *terminal_columns,
     }
     if (cols_thresh == cols_in_use) {
       break;
-    } else if ((i % mix_test) == 0) {
+    } else if ((i % mix_test) == 0) { // testing to always match this
       if (terminal_columns[i].cool_down == 0 && terminal_columns[i].is_empty) {
         uint64_t rand_value = get_rand();
         if (rand_value > FILL_COLUMN_P) {
@@ -208,8 +209,8 @@ terminal_col *load_terminal_columns(terminal_col *terminal_columns,
  *
  *@param display_buffer_ Pointer to the buffer to be displayed on the screen,
  *passed by reference
- *@param loaded_columns The terminal columns loaded with reads to display to the
- *screen
+ *@param loaded_columns The terminal columns loaded with reads to display to
+ *the screen
  **/
 void load_display_buffer(read_char **display_buffer_,
                          terminal_col **loaded_columns_) {
@@ -227,12 +228,13 @@ void load_display_buffer(read_char **display_buffer_,
       if (loaded_columns[i].array_pos == loaded_columns[i].read_length) {
         loaded_columns[i].nucleotides = NULL;
       }
-    } else if (!loaded_columns[i].is_empty && loaded_columns[i].cool_down > 0) {
+    } else if (loaded_columns[i].is_empty && loaded_columns[i].cool_down > 0) {
       // once the column has exhausted all nucleotides in the array start
       // decrementing the cool down
       loaded_columns[i].cool_down--;
     } else {
-      // once the cooldown is decremented set the column to empty to be refilled
+      // once the cooldown is decremented set the column to empty to be
+      // refilled
       loaded_columns[i].is_empty = true;
       cols_in_use--;
     }
