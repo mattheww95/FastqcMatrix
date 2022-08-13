@@ -22,7 +22,7 @@
 
 // The value to altering the maximum allowed value for the cool down counter
 #define COOL_DOWN_MOD 10
-
+#define INIT_COOL_MOD 100
 // for new illumina only
 // have 42 values to fill in
 
@@ -121,7 +121,7 @@ terminal_col *initialize_terminal(const struct winsize _ws) {
   terminal_col *term_data = malloc(sizeof(*term_data) * _ws.ws_col);
   for (size_t i = 0; i < ws.ws_col; i++) {
     term_data[i].column_idx = i;
-    term_data[i].cool_down = (rand() % COOL_DOWN_MOD);
+    term_data[i].cool_down = (rand() % ws.ws_row);
     term_data[i].is_empty = true;
     term_data[i].nucleotides = NULL;
     term_data[i].read_length = 0;
@@ -164,7 +164,7 @@ terminal_col *load_terminal_columns(terminal_col *terminal_columns,
   // uint64_t sequence_count) {
   // extern volatile uint64_t sequence_count;
   // left off here
-  uint64_t cols_thresh = ws.ws_col * 0.85;
+  uint64_t cols_thresh = ws.ws_col * 0.75;
   // Experimenting with some more experimental filling methods
   uint64_t arr_pos = rand() % mod_val_length;
   uint64_t mix_test = mod_vals[arr_pos];
@@ -177,8 +177,7 @@ terminal_col *load_terminal_columns(terminal_col *terminal_columns,
       // function
       printf("\n"); // puting this in for now
       exit(1);
-    }
-    if (cols_thresh == cols_in_use) {
+    } else if (cols_thresh > cols_in_use) {
       break;
     } else if ((i % mix_test) == 0) { // testing to always match this
       if (terminal_columns[i].cool_down == 0 && terminal_columns[i].is_empty) {
