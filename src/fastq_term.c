@@ -295,6 +295,9 @@ void print_buffer(read_char *display_buffer) {
     attron(COLOR_PAIR(display_buffer[i].colour_value));
     addch(display_buffer[i].nucleotide);
     attroff(COLOR_PAIR(display_buffer[i].colour_value));
+    if ((i % ws.ws_col) == 0) {
+      refresh();
+    }
   }
   for (size_t i = (window_size - ws.ws_col); i < window_size; i++) {
     display_buffer[i].colour_value = ERROR;
@@ -359,8 +362,8 @@ int main(int argc, char **argv) {
     print_buffer(&(*terminal_screen)); // test printing to screen
     load_display_buffer(&terminal_screen, &term_data);
     progress_terminal(&terminal_screen);
-    usleep(200000);
-    refresh();
+    napms(40);
+    // refresh();
     term_data = load_terminal_columns(term_data, read_data);
   }
   endwin();

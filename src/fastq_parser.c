@@ -24,9 +24,18 @@ kseq_t *read_file(const char *inpath) {
   // Initialize enought memory for 40000 sequences
   kseq_t *fastq_data = malloc(sizeof(*fastq_data) * start_size);
   while ((l = kseq_read(seq)) >= 0) {
-    if (start_size == sequence_count) {
-      fastq_data = realloc(fastq_data, start_size * 3);
+    if (start_size == (sequence_count - 10)) {
+      fprintf(stderr, "Reallocating buffer size\n");
+      kseq_t *fastq_data_ =
+          realloc(fastq_data, sizeof(*fastq_data) * (start_size * 3));
       start_size = start_size * 3;
+      fprintf(stderr, "Reallocated buffer size\n");
+      if (fastq_data == NULL) {
+        fprintf(stderr, "could not reallocate buffer\n");
+        exit(1);
+      } else {
+        fastq_data = fastq_data_;
+      }
     }
     kseq_t *sequence = malloc(sizeof(*sequence));
     // sequence = seq;
