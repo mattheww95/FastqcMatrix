@@ -6,3 +6,4 @@ Currently the build process is not well programmed. But it will be oneday! The g
 
 ## TODO
 - [ ] Adapt to changing window sizes
+- [ ] Fix scrolling to be more like c_matrix as it really hurts the eyes currently

@@ -33,13 +33,16 @@
 #define ERROR 4
 
 //---define cut offs for quality
-#define GOOD_QUALITY_SCORE '1'
-#define MODERATE_QUALTIY_SCORE '.'
+#define GOOD_QUALITY_SCORE 'D'
+#define MODERATE_QUALTIY_SCORE '?'
 // No need to do a poor one as it wil defualt
 
 //------GLOBALS------------
 static struct winsize ws = {
     0, 0, 0, 0}; // The window size struct so it only needs to be computed once
+terminal_col *term_data = NULL;
+read_char *terminal_screen = NULL;
+kseq_t *read_data = NULL;
 
 static uint64_t window_size =
     0; // The total number of value that can fit on the terminal
@@ -100,14 +103,18 @@ void get_window_size() {
  *
  *@return A pointer to an array of read_char structs
  * */
-read_char *init_term_read_buffer() {
-  read_char *terminal = malloc(sizeof(*terminal) * window_size);
-  for (size_t i = 0; i < window_size; i++) {
-    terminal[i].colour_value = ERROR;
-    terminal[i].quality_value = DEF_NUC;
-    terminal[i].nucleotide = DEF_NUC;
+void init_term_read_buffer() {
+  if (terminal_screen == NULL) {
+    terminal_screen = malloc(sizeof(*terminal_screen) * window_size);
+  } else {
+    terminal_screen =
+        realloc(terminal_screen, sizeof(*terminal_screen) * window_size);
   }
-  return terminal;
+  for (size_t i = 0; i < window_size; i++) {
+    terminal_screen[i].colour_value = ERROR;
+    terminal_screen[i].quality_value = DEF_NUC;
+    terminal_screen[i].nucleotide = DEF_NUC;
+  }
 }
 
 /**
@@ -117,19 +124,23 @@ read_char *init_term_read_buffer() {
  *columns
  *@return An Array of emtpy structs
  * */
-terminal_col *initialize_terminal(const struct winsize _ws) {
+void initialize_terminal() {
   // uint64_t cycler = 0;
-  terminal_col *term_data = malloc(sizeof(*term_data) * _ws.ws_col);
+  if (term_data == NULL) {
+
+    term_data = malloc(sizeof(*term_data) * ws.ws_col);
+  } else {
+    term_data = realloc(term_data, sizeof(*term_data) * ws.ws_col);
+  }
   for (size_t i = 0; i < ws.ws_col; i++) {
     term_data[i].column_idx = i;
     // term_data[i].cool_down = (rand() % ws.ws_row) * (rand() % COOL_DOWN_MOD);
-    term_data[i].cool_down = (i % ws.ws_row) * (rand() % 3);
+    term_data[i].cool_down = (i % ws.ws_row) * (rand() % 4);
     term_data[i].is_empty = true;
     term_data[i].nucleotides = NULL;
     term_data[i].read_length = 0;
     term_data[i].array_pos = 0;
   }
-  return term_data;
 }
 
 /**
@@ -328,6 +339,19 @@ void progress_terminal(read_char **terminal_data) {
   // refresh();
 }
 
+void sig_handler(int signum) {
+  endwin();
+  initscr();
+  get_window_size();
+  init_term_read_buffer();
+  initialize_terminal();
+  term_data = load_terminal_columns(term_data, read_data);
+  load_display_buffer(&terminal_screen, &term_data);
+  mvprintw(0, 0, "%d %d\n", ws.ws_col, ws.ws_row);
+  getch();
+  refresh();
+}
+
 int main(int argc, char **argv) {
   if (argc == 1) {
     fprintf(stderr, "No file input specified\n");
@@ -341,9 +365,9 @@ int main(int argc, char **argv) {
   }
   extern volatile uint64_t sequence_count;
   extern uint64_t cols_in_use;
-  read_char *terminal_screen = init_term_read_buffer(); // The terminal buffer
+  init_term_read_buffer(); // The terminal buffer
   // printf("fastq term sequence count:%lu\n", sequence_count);
-  kseq_t *read_data = read_file(argv[1]);
+  read_data = read_file(argv[1]);
   sequence_count--; // checking if this ends errors andd it does!
   // printf("fastq term sequence count:%lu\n", sequence_count);
   initscr();
@@ -357,14 +381,16 @@ int main(int argc, char **argv) {
   init_pair(2, COLOR_YELLOW, -1);
   init_pair(3, COLOR_GREEN, -1);
   init_pair(4, COLOR_BLUE, -1);
-  terminal_col *term_data = initialize_terminal(ws);
+  initialize_terminal();
   term_data = load_terminal_columns(term_data, read_data);
+  signal(SIGWINCH, sig_handler);
   while (sequence_count != 0) {
     load_display_buffer(&terminal_screen, &term_data);
     print_buffer(&(*terminal_screen)); // test printing to screen
     load_display_buffer(&terminal_screen, &term_data);
     progress_terminal(&terminal_screen);
     napms(40);
+    signal(SIGWINCH, sig_handler);
     refresh();
     term_data = load_terminal_columns(term_data, read_data);
   }

@@ -5,6 +5,7 @@
 #include <err.h>
 #include <fcntl.h>
 #include <ncurses.h>
+#include <signal.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -39,10 +40,9 @@ typedef struct terminal_col {
 
 void print_buffer(read_char *display_buffer);
 
-read_char *init_term_read_buffer(); // Create a buffer on the terminal for the
-                                    // reads to be displayed
-terminal_col *initialize_terminal(
-    const struct winsize _ws); // Create the structs for the terminal
+void init_term_read_buffer(); // Create a buffer on the terminal for the
+                              // reads to be displayed
+void initialize_terminal();   // Create the structs for the terminal
 
 uint8_t color_pair_val(
     char baseq); // Take the correct colour value for each of the quality values
