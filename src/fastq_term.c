@@ -110,6 +110,10 @@ void init_term_read_buffer() {
     terminal_screen =
         realloc(terminal_screen, sizeof(*terminal_screen) * window_size);
   }
+  if (terminal_screen == NULL) {
+    fprintf(stderr, "Could not reallocate read buffer\n");
+    exit(1);
+  }
   for (size_t i = 0; i < window_size; i++) {
     terminal_screen[i].colour_value = ERROR;
     terminal_screen[i].quality_value = DEF_NUC;
@@ -131,6 +135,10 @@ void initialize_terminal() {
     term_data = malloc(sizeof(*term_data) * ws.ws_col);
   } else {
     term_data = realloc(term_data, sizeof(*term_data) * ws.ws_col);
+  }
+  if (term_data == NULL) {
+    fprintf(stderr, "Could not reallocate terminal data buffer\n");
+    exit(1);
   }
   for (size_t i = 0; i < ws.ws_col; i++) {
     term_data[i].column_idx = i;
@@ -157,6 +165,10 @@ read_char *seq_to_read_char(kseq_t *sequence) {
   }
   read_char *read_value =
       malloc(sizeof(*read_value) * sequence->seq.l); // initialize read values
+  if (read_value == NULL) {
+    fprintf(stderr, "Could display read.\n");
+    exit(1);
+  }
   for (size_t i = 0; i < sequence->seq.l; i++) {
     read_value[i].nucleotide = sequence->seq.s[i];
     read_value[i].colour_value = color_pair_val(sequence->qual.s[i]);
@@ -347,8 +359,6 @@ void sig_handler(int signum) {
   initialize_terminal();
   term_data = load_terminal_columns(term_data, read_data);
   load_display_buffer(&terminal_screen, &term_data);
-  mvprintw(0, 0, "%d %d\n", ws.ws_col, ws.ws_row);
-  getch();
   refresh();
 }
 
@@ -389,7 +399,7 @@ int main(int argc, char **argv) {
     print_buffer(&(*terminal_screen)); // test printing to screen
     load_display_buffer(&terminal_screen, &term_data);
     progress_terminal(&terminal_screen);
-    napms(40);
+    napms(240);
     signal(SIGWINCH, sig_handler);
     refresh();
     term_data = load_terminal_columns(term_data, read_data);
