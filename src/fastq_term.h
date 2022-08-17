@@ -57,4 +57,11 @@ terminal_col *load_terminal_columns(terminal_col *terminal_columns,
 // uint64_t sequence_count);
 void load_display_buffer(read_char **display_buffer_,
                          terminal_col **loaded_columns);
+
+void sig_handler();
+
+void aggressive_streaming();
+
+terminal_col *load_gentle_buffer(terminal_col *terminal_data,
+                                 kseq_t *read_data);
 #endif

@@ -127,7 +127,7 @@ void init_term_read_buffer() {
  *@param the winsize struct containing the terminal width e.g. the number of
  *columns
  *@return An Array of emtpy structs
- * */
+ **/
 void initialize_terminal() {
   // uint64_t cycler = 0;
   if (term_data == NULL) {
@@ -156,7 +156,7 @@ void initialize_terminal() {
  *be loaded into the buffer to be displayed on the terminal
  *
  *@param A pointer to a fastq sequence of type kseq_t
- */
+ **/
 read_char *seq_to_read_char(kseq_t *sequence) {
   if (sequence->seq.l != sequence->qual.l) {
     fprintf(stderr,
@@ -320,9 +320,6 @@ void print_buffer(read_char *display_buffer) {
     attron(COLOR_PAIR(display_buffer[i].colour_value));
     addch(display_buffer[i].nucleotide);
     attroff(COLOR_PAIR(display_buffer[i].colour_value));
-    // if ((i % ws.ws_col) == 0) {
-    //  refresh();
-    //}
   }
   for (size_t i = (window_size - ws.ws_col); i < window_size; i++) {
     display_buffer[i].colour_value = ERROR;
@@ -351,6 +348,10 @@ void progress_terminal(read_char **terminal_data) {
   // refresh();
 }
 
+/**
+ *@brief signal handler for window size changing
+ *
+ **/
 void sig_handler(int signum) {
   endwin();
   initscr();
@@ -360,6 +361,53 @@ void sig_handler(int signum) {
   term_data = load_terminal_columns(term_data, read_data);
   load_display_buffer(&terminal_screen, &term_data);
   refresh();
+}
+
+/**
+ *@brief Data is  fed into the buffer in this method showing it scrolling down
+ *the screen
+ * all attributes required for this method are global :(
+ **/
+void aggressive_streaming() {
+
+  term_data = load_terminal_columns(term_data, read_data);
+  while (sequence_count != 0) {
+    load_display_buffer(&terminal_screen, &term_data);
+    print_buffer(&(*terminal_screen)); // test printing to screen
+    // load_display_buffer(&terminal_screen, &term_data);
+    progress_terminal(&terminal_screen);
+    refresh();
+    term_data = load_terminal_columns(term_data, read_data);
+  }
+}
+
+/**
+ *@brief New method of data scrolling, that is easier on the eyes
+ *
+ */
+void gentle_streaming() {
+  read_char *read_char_buffer = malloc(sizeof(*read_char_buffer) * window_size);
+  read_char *display_buffer = malloc(sizeof(*display_buffer) * window_size);
+  // load up all columns with all reads
+  term_data = load_gentle_buffer(term_data, read_data);
+  // load display buffer up
+  free(read_char_buffer);
+  free(display_buffer);
+}
+
+terminal_col *load_gentle_buffer(terminal_col *terminal_data,
+                                 kseq_t *read_data) {
+  for (size_t i = 0; i < ws.ws_col; i++) {
+    if (terminal_data[i].is_empty) {
+      terminal_data[i].array_pos = 0;
+      terminal_data[i].nucleotides =
+          seq_to_read_char(&read_data[sequence_count]);
+      terminal_data[i].read_length = read_data[sequence_count].seq.l;
+      sequence_count--;
+      terminal_data[i].is_empty = false;
+    }
+  }
+  return terminal_data;
 }
 
 int main(int argc, char **argv) {
@@ -392,17 +440,17 @@ int main(int argc, char **argv) {
   init_pair(3, COLOR_GREEN, -1);
   init_pair(4, COLOR_BLUE, -1);
   initialize_terminal();
-  term_data = load_terminal_columns(term_data, read_data);
   signal(SIGWINCH, sig_handler);
-  while (sequence_count != 0) {
-    load_display_buffer(&terminal_screen, &term_data);
-    print_buffer(&(*terminal_screen)); // test printing to screen
-    load_display_buffer(&terminal_screen, &term_data);
-    progress_terminal(&terminal_screen);
-    napms(300);
-    refresh();
-    term_data = load_terminal_columns(term_data, read_data);
-  }
+  aggressive_streaming();
+  // term_data = load_terminal_columns(term_data, read_data);
+  // while (sequence_count != 0) {
+  //   load_display_buffer(&terminal_screen, &term_data);
+  //   print_buffer(&(*terminal_screen)); // test printing to screen
+  //   // load_display_buffer(&terminal_screen, &term_data);
+  //   progress_terminal(&terminal_screen);
+  //   refresh();
+  //   term_data = load_terminal_columns(term_data, read_data);
+  // }
   endwin();
   // destroy_reads(read_data);
   destroy_terminal_columns(term_data);
