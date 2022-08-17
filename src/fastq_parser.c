@@ -25,14 +25,16 @@ kseq_t *read_file(const char *inpath) {
   kseq_t *fastq_data = malloc(sizeof(*fastq_data) * start_size);
   while ((l = kseq_read(seq)) >= 0) {
     if (start_size == (sequence_count - 10)) {
-      //fprintf(stderr, "Reallocating buffer size\n");
+      // fprintf(stderr, "Reallocating buffer size\n");
       start_size = start_size + start_size;
-      fastq_data = realloc(fastq_data, sizeof(*fastq_data) * start_size);
+      kseq_t *fastq_data_ =
+          realloc(fastq_data, sizeof(*fastq_data) * start_size);
       fprintf(stderr, "Loading more sequences.\n");
-      if (fastq_data == NULL) {
+      if (fastq_data_ == NULL) {
         fprintf(stderr, "Could not reallocate buffer\n");
         exit(1);
       }
+      fastq_data = fastq_data_;
     }
     kseq_t *sequence = malloc(sizeof(*sequence));
     // sequence = seq;

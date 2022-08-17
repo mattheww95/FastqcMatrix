@@ -399,7 +399,7 @@ int main(int argc, char **argv) {
     print_buffer(&(*terminal_screen)); // test printing to screen
     load_display_buffer(&terminal_screen, &term_data);
     progress_terminal(&terminal_screen);
-    napms(240);
+    napms(300);
     refresh();
     term_data = load_terminal_columns(term_data, read_data);
   }
