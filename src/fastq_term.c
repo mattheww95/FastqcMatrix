@@ -400,7 +400,6 @@ int main(int argc, char **argv) {
     load_display_buffer(&terminal_screen, &term_data);
     progress_terminal(&terminal_screen);
     napms(240);
-    signal(SIGWINCH, sig_handler);
     refresh();
     term_data = load_terminal_columns(term_data, read_data);
   }
